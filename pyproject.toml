@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "gunicorn>=23.0.0",
     "dash-cytoscape>=1.0.1",
+    "dash-ace>=0.0.5",
 ]
 
 [tool.setuptools]

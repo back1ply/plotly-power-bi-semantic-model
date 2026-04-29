@@ -187,9 +187,7 @@ def register_callbacks(app: Dash, repo: RepositoryPort) -> None:
 
         try:
             # 1. Fetch data using encapsulated repository method
-            df = repo.get_summarized_data(
-                measure_key=measure_label, dimension_key=dimension_label
-            )
+            df = repo.get_summarized_data(measure_key=measure_label, dimension_key=dimension_label)
 
             if df.empty:
                 return create_empty_figure("No data returned"), {}
@@ -262,13 +260,13 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
         Output("dax-query-results", "columnDefs"),
         Output("dax-query-status", "children"),
         Input("dax-query-execute", "n_clicks"),
-        State("dax-stub", "data"),
+        State("dax-editor", "value"),
         prevent_initial_call=True,
     )
     @safe_callback
     def _execute_dax_query(_: int, dax: str | None) -> tuple[list, list, str]:
         """Execute a DAX query against the semantic model and return results."""
-        if not dax or not isinstance(dax, str) or not dax.strip():
+        if not dax or not dax.strip():
             return [], [], "No query entered"
 
         error = validate_dax_query(dax)
@@ -277,7 +275,6 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
 
         t0 = time.perf_counter()
         try:
-            # Use the repository directly instead of current_app.config (CA-002)
             rows = repo.query(dax.strip())
             elapsed = time.perf_counter() - t0
 
@@ -295,9 +292,8 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
         except Exception as exc:
             return [], [], f"✗ {exc}"
 
-
     @app.callback(
-        Output("dax-stub", "data"),
+        Output("dax-editor", "value"),
         Input("dax-query-clear", "n_clicks"),
         prevent_initial_call=True,
     )
@@ -339,11 +335,11 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
             return [window.dash_clientside.no_update, window.dash_clientside.no_update];
         }
         """,
-        Output("dax-stub", "data", allow_duplicate=True),
+        Output("dax-editor", "value", allow_duplicate=True),
         Output("dax-query-status", "children", allow_duplicate=True),
         Input("dax-query-format", "n_clicks"),
         Input("dax-query-copy", "n_clicks"),
-        State("dax-stub", "data"),
+        State("dax-editor", "value"),
         prevent_initial_call=True,
     )
 
@@ -369,4 +365,3 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
     def _toggle_export_button(row_data: list[dict[str, Any]] | None) -> bool:
         """Disable Export CSV button when grid has no data."""
         return not bool(row_data)
-

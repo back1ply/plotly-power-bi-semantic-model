@@ -5,6 +5,7 @@ Features include syntax highlighting, autocomplete, and a field explorer.
 """
 
 import dash
+import dash_ace
 import dash_ag_grid as dag
 import dash_mantine_components as dmc
 from dash import dcc
@@ -47,9 +48,17 @@ def _build_schema_panel(schema, search_term: str = "") -> dmc.ScrollArea:
 
     for table_name, table in schema.tables.items():
         # Filter logic
-        filtered_cols = [c for c in table.columns if search_lower in c.lower() or search_lower in table_name.lower()]
-        filtered_measures = [m for m in table.measures if search_lower in m.lower() or search_lower in table_name.lower()]
-        
+        filtered_cols = [
+            c
+            for c in table.columns
+            if search_lower in c.lower() or search_lower in table_name.lower()
+        ]
+        filtered_measures = [
+            m
+            for m in table.measures
+            if search_lower in m.lower() or search_lower in table_name.lower()
+        ]
+
         if search_term and not filtered_cols and not filtered_measures:
             continue
 
@@ -158,11 +167,9 @@ def serve_layout(repo: SchemaPort):
                 style={"display": "none"},
                 children=[
                     dcc.Store(id="dax-schema-store", data=schema_data),
-                    dcc.Store(id="dax-stub", data=""),
                     dcc.Download(id="dax-query-download"),
-                ]
+                ],
             ),
-            
             dmc.Grid(
                 gutter="md",
                 style={"flex": 1},
@@ -203,12 +210,11 @@ def serve_layout(repo: SchemaPort):
                                     c="dimmed",
                                     mt="xs",
                                     fs="italic",
-                                    ta="center"
+                                    ta="center",
                                 ),
                             ],
                         ),
                     ),
-                    
                     # Right: Editor and Results
                     dmc.GridCol(
                         span=9,
@@ -232,63 +238,87 @@ def serve_layout(repo: SchemaPort):
                                                         dmc.Button(
                                                             "Execute",
                                                             id="dax-query-execute",
-                                                            leftSection=DashIconify(icon="tabler:player-play-filled"),
+                                                            leftSection=DashIconify(
+                                                                icon="tabler:player-play-filled"
+                                                            ),
                                                             size="sm",
-                                                            color="blue"
+                                                            color="blue",
                                                         ),
                                                         dmc.Button(
                                                             "Format",
                                                             id="dax-query-format",
                                                             variant="light",
-                                                            leftSection=DashIconify(icon="tabler:align-left"),
+                                                            leftSection=DashIconify(
+                                                                icon="tabler:align-left"
+                                                            ),
                                                             size="sm",
-                                                            color="gray"
+                                                            color="gray",
                                                         ),
                                                         dmc.Button(
                                                             "Copy",
                                                             id="dax-query-copy",
                                                             variant="subtle",
-                                                            leftSection=DashIconify(icon="tabler:copy"),
+                                                            leftSection=DashIconify(
+                                                                icon="tabler:copy"
+                                                            ),
                                                             size="sm",
-                                                            color="gray"
+                                                            color="gray",
                                                         ),
                                                         dmc.Button(
                                                             "Clear",
                                                             id="dax-query-clear",
                                                             variant="subtle",
-                                                            leftSection=DashIconify(icon="tabler:trash"),
+                                                            leftSection=DashIconify(
+                                                                icon="tabler:trash"
+                                                            ),
                                                             size="sm",
-                                                            color="red"
+                                                            color="red",
                                                         ),
-                                                    ]
+                                                    ],
                                                 ),
                                                 dmc.Text(
                                                     id="dax-query-status",
                                                     size="xs",
                                                     c="dimmed",
-                                                    children="Ready"
+                                                    children="Ready",
                                                 ),
-                                            ]
+                                            ],
                                         ),
-                                        html.Div(
-                                            id="dax-editor-placeholder",
-                                            children="Editor loading...",
-                                            style={"height": "350px", "border": "1px solid gray", "padding": "8px"},
+                                        dash_ace.DashAceEditor(
+                                            id="dax-editor",
+                                            value="",
+                                            mode="text",
+                                            theme="monokai",
+                                            tabSize=4,
+                                            enableBasicAutocompletion=False,
+                                            enableLiveAutocompletion=False,
+                                            placeholder='EVALUATE\n    ROW("Value", 1)',
+                                            style={
+                                                "height": "350px",
+                                                "width": "100%",
+                                                "fontSize": "14px",
+                                            },
                                         ),
                                     ],
                                 ),
-                                
                                 # Results
                                 dmc.Paper(
                                     p=0,
                                     withBorder=True,
                                     radius="md",
-                                    style={"flex": 1, "overflow": "hidden", "display": "flex", "flexDirection": "column"},
+                                    style={
+                                        "flex": 1,
+                                        "overflow": "hidden",
+                                        "display": "flex",
+                                        "flexDirection": "column",
+                                    },
                                     children=[
                                         dmc.Group(
                                             p="xs",
                                             justify="space-between",
-                                            style={"borderBottom": "1px solid var(--mantine-color-dark-4)"},
+                                            style={
+                                                "borderBottom": "1px solid var(--mantine-color-dark-4)"
+                                            },
                                             children=[
                                                 dmc.Text("Query Results", fw=600, size="sm"),
                                                 dmc.Button(
@@ -297,9 +327,9 @@ def serve_layout(repo: SchemaPort):
                                                     variant="subtle",
                                                     size="xs",
                                                     leftSection=DashIconify(icon="tabler:download"),
-                                                    disabled=True
+                                                    disabled=True,
                                                 ),
-                                            ]
+                                            ],
                                         ),
                                         dcc.Loading(
                                             type="circle",
@@ -321,7 +351,7 @@ def serve_layout(repo: SchemaPort):
                                                 style={"height": "100%", "width": "100%"},
                                                 className="ag-theme-alpine-dark",
                                             ),
-                                            style={"height": "100%"}
+                                            style={"height": "100%"},
                                         ),
                                     ],
                                 ),
@@ -332,6 +362,7 @@ def serve_layout(repo: SchemaPort):
             ),
         ],
     )
+
 
 # Search callback for schema explorer
 @dash.callback(
@@ -344,14 +375,14 @@ def search_schema(search_term: str, schema_data: dict):
     """Filter the schema accordion based on search term."""
     if not schema_data:
         return ""
-    
+
     # We need to reconstruct a minimal object compatible with _build_schema_panel
     # or just use the raw data.
     class MockTable:
         def __init__(self, cols, measures):
             self.columns = cols
             self.measures = measures
-            
+
     class MockSchema:
         def __init__(self, tables_dict):
             self.tables = tables_dict
@@ -359,5 +390,5 @@ def search_schema(search_term: str, schema_data: dict):
     tables = {}
     for t in schema_data["tables"]:
         tables[t["name"]] = MockTable(t["columns"], t["measures"])
-    
+
     return _build_schema_panel(MockSchema(tables), search_term or "")
