@@ -35,7 +35,7 @@
   var keywordSet = {};
   keywords.split("|").forEach(function (k) { keywordSet[k] = true; });
 
-  window.ace.define(
+  ace.define(
     "ace/mode/dax",
     [
       "require", "exports", "module",
@@ -56,8 +56,8 @@
             { token: "comment", regex: /--.*$/ },
             // Block comment start
             { token: "comment", regex: /\/\*/, next: "block_comment" },
-            // Table reference: 'Table Name'
-            { token: "string", regex: /'[^']*'/ },
+            // Table reference: 'Table Name' — doubled '' escapes single quotes inside names
+            { token: "string", regex: /'(?:[^']|'')*'/ },
             // Column / measure reference: [Field]
             { token: "variable", regex: /\[[^\]]*\]/ },
             // String literal: "..."
@@ -81,7 +81,7 @@
           ],
           block_comment: [
             { token: "comment", regex: /\*\//, next: "start" },
-            { token: "comment", regex: /[\s\S]/ },
+            { token: "comment", regex: /(?:[^*]|\*(?!\/))+/ },
           ],
         };
       };
