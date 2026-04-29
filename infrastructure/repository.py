@@ -54,9 +54,7 @@ class LiveRepository(RepositoryPort):
         """Delegate to DaxSourcePort."""
         return self._queries.get_fragment(category, key)
 
-    def get_formatted_query(
-        self, key: str, parameters: dict[str, Any] | None = None
-    ) -> str:
+    def get_formatted_query(self, key: str, parameters: dict[str, Any] | None = None) -> str:
         """Delegate to DaxSourcePort."""
         return self._queries.get_formatted_query(key, parameters=parameters)
 
@@ -101,9 +99,7 @@ class LiveRepository(RepositoryPort):
     ) -> pd.DataFrame:
         """Fetch data using a dynamic query template and parameters."""
         dax = self._queries.get_formatted_query(key, parameters=parameters)
-        return self._execute_query_with_error_handling(
-            dax, f"get_dynamic_data({key})", limit
-        )
+        return self._execute_query_with_error_handling(dax, f"get_dynamic_data({key})", limit)
 
     def get_summarized_data(
         self, measure_key: str, dimension_key: str, limit: int | None = None

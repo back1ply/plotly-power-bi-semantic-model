@@ -133,9 +133,7 @@ class DataPort(Protocol):
 class DaxSourcePort(DaxLoaderPort, Protocol):
     """Protocol for retrieving DAX query strings and fragments."""
 
-    def get_formatted_query(
-        self, key: str, parameters: dict[str, Any] | None = None
-    ) -> str:
+    def get_formatted_query(self, key: str, parameters: dict[str, Any] | None = None) -> str:
         """Get a formatted DAX query from a template and parameters."""
         ...
 
@@ -147,7 +145,7 @@ class DaxSourcePort(DaxLoaderPort, Protocol):
 @runtime_checkable
 class RepositoryPort(SchemaPort, DataPort, DaxSourcePort, Protocol):
     """Unified protocol for dashboard data access.
-    
+
     WARNING: This is a 'Fat Interface' that aggregates multiple responsibilities.
     Clients should prefer depending on narrower ports (SchemaPort, DataPort, etc.)
     where possible to adhere to the Interface Segregation Principle.

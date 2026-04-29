@@ -11,9 +11,7 @@ async def capture_dash_errors():
         captured_events = []
         page.on(
             "console",
-            lambda msg: captured_events.append(
-                {"type": f"console_{msg.type}", "text": msg.text}
-            ),
+            lambda msg: captured_events.append({"type": f"console_{msg.type}", "text": msg.text}),
         )
         page.on(
             "requestfailed",
@@ -60,9 +58,7 @@ async def capture_dash_errors():
                         await page.locator(selector).count() > 0
                         and await page.locator(selector).is_visible()
                     ):
-                        print(
-                            f"Found debug element on {path} with selector: {selector}"
-                        )
+                        print(f"Found debug element on {path} with selector: {selector}")
                         found_error = True
                         if "error" in selector or "fe-error" in selector:
                             await page.locator(selector).click()
@@ -83,9 +79,7 @@ async def capture_dash_errors():
         for event in captured_events:
             print(f"[{event['type']}] {event['text']}")
 
-        await page.screenshot(
-            path="scripts/output/debug_screenshot.png", full_page=True
-        )
+        await page.screenshot(path="scripts/output/debug_screenshot.png", full_page=True)
         print("Screenshot saved to scripts/output/debug_screenshot.png")
         await browser.close()
 

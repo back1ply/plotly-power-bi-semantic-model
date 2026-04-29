@@ -157,11 +157,7 @@ def build_sales_kpi_cards(
 
     cards = []
     for c in kpi_config:
-        value = (
-            c.formatter(row.get(c.column, 0) or 0)
-            if row is not None
-            else c.formatter(0)
-        )
+        value = c.formatter(row.get(c.column, 0) or 0) if row is not None else c.formatter(0)
 
         cards.append(
             dmc.Paper(

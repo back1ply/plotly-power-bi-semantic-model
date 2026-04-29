@@ -64,9 +64,7 @@ class MsalTokenProvider(TokenProviderPort):
             token = result.get("access_token") if isinstance(result, dict) else None
             if not token:
                 error_desc = (
-                    result.get("error_description")
-                    if isinstance(result, dict)
-                    else "Unknown"
+                    result.get("error_description") if isinstance(result, dict) else "Unknown"
                 )
                 raise AuthenticationError(
                     f"Could not acquire token for tenant {self._tenant_id}: {error_desc}"

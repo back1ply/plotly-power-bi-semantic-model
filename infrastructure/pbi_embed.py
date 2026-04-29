@@ -63,10 +63,7 @@ class PbiEmbedService(EmbedPort):
             embed_url: str = report_data["embedUrl"]
             dataset_id: str = report_data.get("datasetId", self._config.dataset_id)
 
-            token_request_body = {
-                "accessLevel": "View",
-                "datasetId": dataset_id
-            }
+            token_request_body = {"accessLevel": "View", "datasetId": dataset_id}
 
             token_resp = requests.post(
                 f"{base}/reports/{report_id}/GenerateToken",

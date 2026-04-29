@@ -37,9 +37,7 @@ class SlidingWindowRateLimiter(RateLimiterPort):
         with self._lock:
             now = time.time()
             self._request_timestamps = [
-                ts
-                for ts in self._request_timestamps
-                if now - ts <= self._window_seconds
+                ts for ts in self._request_timestamps if now - ts <= self._window_seconds
             ]
             if len(self._request_timestamps) >= self._max_requests:
                 logger.warning("Rate limit exceeded")

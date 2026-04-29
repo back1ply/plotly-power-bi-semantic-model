@@ -33,9 +33,7 @@ class StartupDataLoader:
         self._repository = repository
         self._preload_keys = preload_keys or list(QueryKey)
 
-    def populate_cache(
-        self, max_attempts: int = 3, base_delay: float = 2.0
-    ) -> LoadResult:
+    def populate_cache(self, max_attempts: int = 3, base_delay: float = 2.0) -> LoadResult:
         """Populate cache with retry logic at the query level."""
 
         @with_retry(

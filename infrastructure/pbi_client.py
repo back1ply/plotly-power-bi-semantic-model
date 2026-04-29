@@ -63,7 +63,7 @@ class PbiClient(QueryClientPort):
         # Determine if it's likely a network/library-level error without direct coupling
         exc_type_name = type(exc).__name__
         exc_module = getattr(type(exc), "__module__", "")
-        
+
         # Log the specific error for internal debugging
         logger.error("PbiClient.%s failure [%s]: %s", context, exc_type_name, exc)
 

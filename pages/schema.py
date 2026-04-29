@@ -38,9 +38,7 @@ def _build_schema_accordion(schema: ModelSchema) -> dmc.Accordion:
                 dmc.Group(
                     gap="xs",
                     mb="md",
-                    children=[
-                        dmc.Badge(col, variant="outline", size="sm") for col in columns
-                    ],
+                    children=[dmc.Badge(col, variant="outline", size="sm") for col in columns],
                 )
             )
 
@@ -50,16 +48,13 @@ def _build_schema_accordion(schema: ModelSchema) -> dmc.Accordion:
                 dmc.Group(
                     gap="xs",
                     children=[
-                        dmc.Badge(m, variant="light", color="teal", size="sm")
-                        for m in measures
+                        dmc.Badge(m, variant="light", color="teal", size="sm") for m in measures
                     ],
                 )
             )
 
         if not columns and not measures:
-            content.append(
-                dmc.Text("No columns or measures found.", size="sm", c="dimmed")
-            )
+            content.append(dmc.Text("No columns or measures found.", size="sm", c="dimmed"))
 
         items.append(
             dmc.AccordionItem(
@@ -67,9 +62,7 @@ def _build_schema_accordion(schema: ModelSchema) -> dmc.Accordion:
                     dmc.AccordionControl(
                         dmc.Group(
                             children=[
-                                DashIconify(
-                                    icon="tabler:table", width=20, color="gray"
-                                ),
+                                DashIconify(icon="tabler:table", width=20, color="gray"),
                                 dmc.Text(table_name, fw=500),
                             ]
                         )

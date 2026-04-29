@@ -83,7 +83,5 @@ class DaxQueryLoader(DaxLoaderPort):
         self._ensure_loaded()
         cat = self._fragments.get(category.value, {})
         if key not in cat:
-            raise QueryNotFoundError(
-                f"Unknown fragment key: {key!r} in category {category!r}."
-            )
+            raise QueryNotFoundError(f"Unknown fragment key: {key!r} in category {category!r}.")
         return cat[key]

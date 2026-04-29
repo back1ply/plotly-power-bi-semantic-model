@@ -41,13 +41,9 @@ class QueryService(DaxSourcePort):
         try:
             return self._source.get_fragment(category, key)
         except (KeyError, QueryNotFoundError) as exc:
-            raise QueryNotFoundError(
-                f"Fragment not found for {category}/{key}"
-            ) from exc
+            raise QueryNotFoundError(f"Fragment not found for {category}/{key}") from exc
 
-    def get_formatted_query(
-        self, key: str, parameters: dict[str, Any] | None = None
-    ) -> str:
+    def get_formatted_query(self, key: str, parameters: dict[str, Any] | None = None) -> str:
         """Get a formatted DAX query from a template and parameters."""
         parameters = parameters or {}
         try:
@@ -62,9 +58,7 @@ class QueryService(DaxSourcePort):
         """Get the formatted DAX query text for a specific measure and dimension."""
         try:
             measure_dax = self.get_fragment(FragmentCategory.MEASURE, measure_key)
-            dimension_dax = self.get_fragment(
-                FragmentCategory.DIMENSION, dimension_key
-            )
+            dimension_dax = self.get_fragment(FragmentCategory.DIMENSION, dimension_key)
             template = self.get_query_template("summarizecolumns")
 
             return template.format(

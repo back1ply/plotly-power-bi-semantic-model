@@ -41,9 +41,7 @@ def inject_logging_script(app: Dash) -> None:
         app: The Dash application instance.
     """
     if "</body>" in app.index_string:
-        app.index_string = app.index_string.replace(
-            "</body>", f"{_BROWSER_LOGGING_SCRIPT}</body>"
-        )
+        app.index_string = app.index_string.replace("</body>", f"{_BROWSER_LOGGING_SCRIPT}</body>")
     else:
         app.index_string += _BROWSER_LOGGING_SCRIPT
 

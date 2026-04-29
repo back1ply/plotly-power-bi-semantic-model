@@ -102,6 +102,7 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
 
     # 7. Define Health Check
     logger.info("Setting up internal routes...")
+
     @app.server.route("/api/health")
     def health_check():
         return jsonify({"status": "ok"})
@@ -122,7 +123,6 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
             logger.error("embed_config failed: %s", exc)
             abort(502, description=str(exc))
 
-
     # 8. Set Layout
     app.layout = create_layout(
         container.pbi_client.has_credentials,
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     # Explicitly preload data in development
     config = AppConfig()
     container = DiContainer(config)
-    
+
     # Preload cache at startup (non-blocking for server startup in local dev)
     try:
         _load_startup_data(container, config)

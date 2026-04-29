@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 class SchemaService(SchemaPort):
     """Handles semantic model schema and relationship metadata."""
 
-    def __init__(
-        self, query_client: QueryClientPort, query_service: DaxSourcePort
-    ) -> None:
+    def __init__(self, query_client: QueryClientPort, query_service: DaxSourcePort) -> None:
         """Initialize with client and query service."""
         self._client = query_client
         self._queries = query_service
@@ -43,9 +41,7 @@ class SchemaService(SchemaPort):
                     continue
 
                 if table_name not in tables:
-                    tables[table_name] = TableSchema(
-                        name=table_name, columns=[], measures=[]
-                    )
+                    tables[table_name] = TableSchema(name=table_name, columns=[], measures=[])
 
                 if row["Type"] == "Column":
                     tables[table_name].columns.append(col_name)
@@ -74,16 +70,12 @@ class SchemaService(SchemaPort):
                     to_table=rel.get("ToTable", ""),
                     to_column=rel.get("ToColumn", ""),
                     is_active=bool(rel.get("IsActive", True)),
-                    cross_filtering_behavior=str(
-                        rel.get("CrossFilteringBehavior", "OneDirection")
-                    ),
+                    cross_filtering_behavior=str(rel.get("CrossFilteringBehavior", "OneDirection")),
                     from_cardinality=str(rel.get("FromCardinality", "")),
                     to_cardinality=str(rel.get("ToCardinality", "")),
                 )
                 for rel in raw_rels
             ]
         except Exception as exc:
-            logger.exception(
-                "SchemaService.get_relationships: failed to fetch relationships"
-            )
+            logger.exception("SchemaService.get_relationships: failed to fetch relationships")
             raise QueryError(f"Failed to fetch model relationships: {exc}") from exc

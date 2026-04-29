@@ -16,6 +16,7 @@ dash.register_page(
     order=5,
 )
 
+
 def layout() -> dmc.Stack:
     """Return the PBI Embedded report page layout."""
     return dmc.Stack(
@@ -47,7 +48,7 @@ def layout() -> dmc.Stack:
                                 leftSection=dmc.ThemeIcon(
                                     html.I(className="tabler:refresh"),
                                     size="xs",
-                                    variant="transparent"
+                                    variant="transparent",
                                 ),
                             ),
                             dmc.ActionIcon(

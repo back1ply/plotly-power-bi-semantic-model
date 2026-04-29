@@ -78,9 +78,7 @@ def _build_model_data(schema: ModelSchema, relationships: list) -> dict:
             else ("*" if from_card and "Many" in from_card else "?")
         )
         t_label = (
-            "1"
-            if to_card and "One" in to_card
-            else ("*" if to_card and "Many" in to_card else "?")
+            "1" if to_card and "One" in to_card else ("*" if to_card and "Many" in to_card else "?")
         )
 
         rels.append(

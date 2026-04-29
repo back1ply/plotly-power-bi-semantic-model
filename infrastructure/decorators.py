@@ -47,9 +47,7 @@ class CachingRepositoryDecorator(RepositoryPort):
         self._repository = repository
         self._cache = query_cache
 
-    def _get_dynamic_key(
-        self, key: str, limit: int | None = None, **kwargs: Any
-    ) -> str:
+    def _get_dynamic_key(self, key: str, limit: int | None = None, **kwargs: Any) -> str:
         """Generate a stable cache key for dynamic queries."""
         # Sort keys to ensure stable hashing
         param_data = {"kwargs": kwargs, "limit": limit}
@@ -125,9 +123,7 @@ class CachingRepositoryDecorator(RepositoryPort):
         if data is not None and isinstance(data, pd.DataFrame):
             return data
 
-        data = self._repository.get_dynamic_data(
-            key, parameters=parameters, limit=limit
-        )
+        data = self._repository.get_dynamic_data(key, parameters=parameters, limit=limit)
         self._cache.set(cache_key, data)
         return data
 

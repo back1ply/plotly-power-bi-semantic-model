@@ -60,9 +60,7 @@ KPI_CONFIG = [
         icon="tabler:trending-up",
         color="teal",
     ),
-    KpiConfig(
-        "Orders", "Orders", format_integer, icon="tabler:shopping-cart", color="orange"
-    ),
+    KpiConfig("Orders", "Orders", format_integer, icon="tabler:shopping-cart", color="orange"),
     KpiConfig(
         "Avg Order Value",
         "AvgOrderValue",
@@ -182,10 +180,7 @@ def serve_layout(repo: DataPort) -> dmc.Stack | dmc.Alert:
                                         dmc.Select(
                                             id="home-builder-measure",
                                             label="Measure",
-                                            data=[
-                                                {"label": k, "value": k}
-                                                for k in MEASURE_LABELS
-                                            ],
+                                            data=[{"label": k, "value": k} for k in MEASURE_LABELS],
                                             value="Revenue",
                                             size="xs",
                                         ),
@@ -193,8 +188,7 @@ def serve_layout(repo: DataPort) -> dmc.Stack | dmc.Alert:
                                             id="home-builder-dimension",
                                             label="Dimension",
                                             data=[
-                                                {"label": k, "value": k}
-                                                for k in DIMENSION_LABELS
+                                                {"label": k, "value": k} for k in DIMENSION_LABELS
                                             ],
                                             value="Category",
                                             size="xs",

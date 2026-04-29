@@ -34,16 +34,16 @@ token_res = requests.post(
 access_token = token_res.json()["access_token"]
 
 # === STEP 2: QUERY DATA ===
-query_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{dataset_id}/executeQueries"
+query_url = (
+    f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{dataset_id}/executeQueries"
+)
 
 query = {
     "queries": [{"query": "EVALUATE TOPN(100, 'your_table_name')"}],
     "serializationSettings": {"includeNulls": True},
 }
 
-res = requests.post(
-    query_url, headers={"Authorization": f"Bearer {access_token}"}, json=query
-)
+res = requests.post(query_url, headers={"Authorization": f"Bearer {access_token}"}, json=query)
 
 
 rows = res.json()["results"][0]["tables"][0]["rows"]

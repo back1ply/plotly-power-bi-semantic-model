@@ -36,9 +36,7 @@ def discover_full_schema():
         col_count = sum(len(table.columns) for table in schema.tables.values())
         measure_count = sum(len(table.measures) for table in schema.tables.values())
 
-        print(
-            f"Found {table_count} tables, {col_count} columns, and {measure_count} measures."
-        )
+        print(f"Found {table_count} tables, {col_count} columns, and {measure_count} measures.")
 
         # 2. Save structured schema
         from dataclasses import asdict  # noqa: PLC0415

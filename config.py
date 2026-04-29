@@ -18,9 +18,7 @@ load_dotenv()
 T = TypeVar("T")
 
 
-def _env_field[T](
-    key: str, default: T, converter: Callable[[Any], T] | None = None
-) -> Any:
+def _env_field[T](key: str, default: T, converter: Callable[[Any], T] | None = None) -> Any:
     """Helper to create a dataclass field mapped to an environment variable.
 
     Args:
@@ -59,21 +57,15 @@ class AppConfig:
     report_id: str = _env_field("REPORT_ID", "")
     cache_dir: str = _env_field("CACHE_DIR", "./.cache")
     cache_ttl: int = _env_field("CACHE_TTL_SECONDS", 3600, int)
-    use_disk_cache: bool = _env_field(
-        "USE_DISK_CACHE", False, lambda v: str(v).lower() == "true"
-    )
+    use_disk_cache: bool = _env_field("USE_DISK_CACHE", False, lambda v: str(v).lower() == "true")
     max_retries: int = _env_field("STARTUP_RETRY_MAX", 3, int)
     retry_delay: float = _env_field("STARTUP_RETRY_DELAY", 2.0, float)
     max_rate_limit_requests: int = _env_field("RATE_LIMIT_MAX_REQUESTS", 120, int)
     rate_limit_window: int = _env_field("RATE_LIMIT_WINDOW_SECONDS", 60, int)
     request_timeout: int = _env_field("REQUEST_TIMEOUT_SECONDS", 60, int)
     api_base: str = _env_field("PBI_API_BASE", "https://api.powerbi.com/v1.0/myorg")
-    preload_data: bool = _env_field(
-        "PRELOAD_DATA", False, lambda v: str(v).lower() == "true"
-    )
-    debug: bool = _env_field(
-        "FLASK_DEBUG", False, lambda v: str(v).lower() in ("true", "1", "t")
-    )
+    preload_data: bool = _env_field("PRELOAD_DATA", False, lambda v: str(v).lower() == "true")
+    debug: bool = _env_field("FLASK_DEBUG", False, lambda v: str(v).lower() in ("true", "1", "t"))
 
     # DAX query path (defaults to queries/dax.json relative to project root)
     dax_path: Path = field(
