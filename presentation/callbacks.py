@@ -262,13 +262,13 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
         Output("dax-query-results", "columnDefs"),
         Output("dax-query-status", "children"),
         Input("dax-query-execute", "n_clicks"),
-        State("dax-schema-store", "data"),
+        State("dax-stub", "data"),
         prevent_initial_call=True,
     )
     @safe_callback
     def _execute_dax_query(_: int, dax: str | None) -> tuple[list, list, str]:
         """Execute a DAX query against the semantic model and return results."""
-        if not dax or not dax.strip():
+        if not dax or not isinstance(dax, str) or not dax.strip():
             return [], [], "No query entered"
 
         error = validate_dax_query(dax)
@@ -297,7 +297,7 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
 
 
     @app.callback(
-        Output("dax-schema-store", "data"),
+        Output("dax-stub", "data"),
         Input("dax-query-clear", "n_clicks"),
         prevent_initial_call=True,
     )
@@ -339,11 +339,11 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
             return [window.dash_clientside.no_update, window.dash_clientside.no_update];
         }
         """,
-        Output("dax-schema-store", "data", allow_duplicate=True),
+        Output("dax-stub", "data", allow_duplicate=True),
         Output("dax-query-status", "children", allow_duplicate=True),
         Input("dax-query-format", "n_clicks"),
         Input("dax-query-copy", "n_clicks"),
-        State("dax-schema-store", "data"),
+        State("dax-stub", "data"),
         prevent_initial_call=True,
     )
 
