@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <script src="https://d3js.org/d3.v7.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #F3F2F1;
+            font-family: 'Segoe UI', 'wf_segoe-ui_normal', helvetica, arial, sans-serif;
+            color: #323130;
+        }
+        #diagram {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        #diagram:active { cursor: grabbing; }
+        
+        .table-card {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            cursor: default;
+        }
+        .table-header {
+            fill: #FFFFFF;
+            stroke: #E1DFDD;
+            stroke-width: 1;
+        }
+        .table-body {
+            fill: #FFFFFF;
+            stroke: #E1DFDD;
+            stroke-width: 1;
+        }
+        .table-title {
+            font-weight: 600;
+            font-size: 13px;
+            fill: #323130;
+        }
+        .column-text {
+            font-size: 11px;
+            fill: #323130;
+        }
+        .column-icon {
+            font-family: "Segoe UI Symbol", "Segoe MDL2 Assets";
+            font-size: 10px;
+        }
+        .more-columns {
+            font-size: 10px;
+            fill: #605E5C;
+            font-style: italic;
+        }
+        
+        .relationship-path {
+            fill: none;
+            stroke: #A19F9D;
+            stroke-width: 2;
+            pointer-events: none;
+        }
+        .relationship-path.highlighted {
+            stroke: #0078D4 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 2px rgba(0,120,212,0.4));
+        }
+        .relationship-indicator {
+            fill: none;
+            stroke: none;
+            pointer-events: none;
+        }
+        .relationship-hit-area {
+            fill: none;
+            stroke: transparent;
+            stroke-width: 20;
+            cursor: pointer;
+        }
+        .relationship-path.inactive {
+            stroke-dasharray: 4, 4;
+        }
+        
+        .column-highlighted {
+            fill: #0078D4 !important;
+            font-weight: 600 !important;
+        }
+        .table-card.highlighted {
+            filter: drop-shadow(0 4px 12px rgba(0,120,212,0.3));
+        }
+        .table-header.highlighted {
+            stroke: #0078D4;
+            stroke-width: 2;
+        }
+        
+        .cardinality-text {
+            font-size: 11px;
+            fill: #323130;
+            font-weight: 600;
+            user-select: none;
+        }
+        
+        .animate-smooth .table-card {
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .animate-smooth .relationship-path {
+            transition: d 0.8s, stroke 0.8s, stroke-width 0.8s, stroke-dasharray 0.8s;
+        }
+        .animate-smooth .cardinality-text {
+            transition: x 0.8s, y 0.8s, opacity 0.8s;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: #FFFFFF;
+            border: 1px solid #E1DFDD;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 3000;
+            min-width: 180px;
+            line-height: 1.5;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 2000;
+            border: 1px solid #E1DFDD;
+            backdrop-filter: blur(4px);
+        }
+        .control-group {
+            display: flex;
+            gap: 8px;
+        }
+        .status-indicator {
+            font-size: 11px;
+            color: #605E5C;
+            padding-top: 8px;
+            border-top: 1px solid #EDEBE9;
+            margin-top: 2px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .control-btn {
+            background: #FFFFFF;
+            border: 1px solid #D1D1D1;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #323130;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-btn:hover {
+            background: #F3F2F1;
+            border-color: #A19F9D;
+        }
+        .control-btn.active {
+            background: #0078D4 !important;
+            color: #FFFFFF !important;
+            border-color: #0078D4 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="tooltip" class="tooltip"></div>
+    <div class="controls">
+        <div class="control-group">
+            <button id="toggle-compact" class="control-btn" onclick="toggleCompact()">
+                <span class="column-icon">&#xE71D;</span> Toggle View
+            </button>
+            <button class="control-btn" onclick="resetLayout()">
+                <span class="column-icon">&#xE777;</span> Reset Layout
+            </button>
+            <button class="control-btn" onclick="clearMemory()">
+                <span class="column-icon">&#xE74D;</span> Clear Memory
+            </button>
+        </div>
+        <div id="status-line" class="status-indicator">
+            <span>Tables: 0</span>
+            <span>Relationships: 0</span>
+        </div>
+    </div>
+    <svg id="diagram"></svg>
+
+    <script>
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        const CARD_WIDTH = 220; 
+        const HEADER_HEIGHT = 36;
+        const ROW_HEIGHT = 22;
+        const MAX_COLS = 12;
+        const STORAGE_KEY = 'pbi_model_layout';
+
+        let isCompact = false;
+        let currentModelData = null;
+        let positions = {};
+        let tableDataMap = {}; // Global table data map for performance
+        
+        const svg = d3.select("#diagram")
+            .attr("width", "100%")
+            .attr("height", "100%");
+            
+        const g = svg.append("g");
+        
+        // Markers
+        const defs = svg.append("defs");
+
+        // Arrow head for OneDirection (points towards Many)
+        defs.append("marker")
+            .attr("id", "arrow-single")
+            .attr("viewBox", "0 0 10 10")
+            .attr("refX", "8")
+            .attr("refY", "5")
+            .attr("markerWidth", "12")
+            .attr("markerHeight", "12")
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 0 L 10 5 L 0 10 z")
+            .attr("fill", "#A19F9D");
+
+        // Bi-directional arrow for Both
+        defs.append("marker")
+            .attr("id", "arrow-both")
+            .attr("viewBox", "0 0 10 10")
+            .attr("refX", "5")
+            .attr("refY", "5")
+            .attr("markerWidth", "14")
+            .attr("markerHeight", "14")
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 5 L 5 0 L 10 5 L 5 10 z")
+            .attr("fill", "#A19F9D");
+
+        // Highlighted versions
+        defs.append("marker")
+            .attr("id", "arrow-single-highlighted")
+            .attr("viewBox", "0 0 10 10")
+            .attr("refX", "8")
+            .attr("refY", "5")
+            .attr("markerWidth", "12")
+            .attr("markerHeight", "12")
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 0 L 10 5 L 0 10 z")
+            .attr("fill", "#0078D4");
+        
+        // Zoom Behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 5])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+            
+        svg.call(zoom);
+
+        window.loadModelData = function(modelData) {
+            console.log("Loading model data...", modelData);
+            currentModelData = modelData;
+            renderDiagram();
+        };
+
+        function toggleCompact() {
+            isCompact = !isCompact;
+            d3.select("#toggle-compact").classed("active", isCompact);
+            renderDiagram();
+        }
+
+        function clearMemory() {
+            localStorage.removeItem(STORAGE_KEY);
+            alert("Memory cleared. Reload to see default layout.");
+        }
+
+        function resetLayout() {
+            localStorage.removeItem(STORAGE_KEY);
+            if (!currentModelData) return;
+            
+            const tables = currentModelData.tables;
+            const relationships = currentModelData.relationships;
+            
+            // 1. Identify Fact Table (highest degree)
+            const tableDegree = {};
+            tables.forEach(t => tableDegree[t.id] = 0);
+            relationships.forEach(r => {
+                tableDegree[r.from]++;
+                tableDegree[r.to]++;
+            });
+            const factTableId = Object.keys(tableDegree).reduce((a, b) => (tableDegree[a] || 0) > (tableDegree[b] || 0) ? a : b);
+
+            // 2. Prepare nodes and links for simulation
+            const nodes = tables.map(t => ({
+                id: t.id,
+                x: positions[t.id] ? positions[t.id].x + CARD_WIDTH / 2 : width / 2,
+                y: positions[t.id] ? positions[t.id].y + (t.cachedHeight / 2) : height / 2
+            }));
+            const links = relationships.map(r => ({ source: r.from, target: r.to }));
+
+            // 3. Run Simulation (Static Execution)
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(400).strength(d => 1 / Math.min(tableDegree[d.source.id], tableDegree[d.target.id])))
+                .force("charge", d3.forceManyBody().strength(-2500))
+                .force("collide", d3.forceCollide().radius(CARD_WIDTH / 1.5))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+
+            const factNode = nodes.find(n => n.id === factTableId);
+            if (factNode) {
+                factNode.fx = width / 2;
+                factNode.fy = height / 2;
+            }
+
+            simulation.stop();
+            for (let i = 0; i < 300; ++i) simulation.tick();
+
+            // 4. Capture positions
+            nodes.forEach(node => {
+                const h = tableDataMap[node.id] ? tableDataMap[node.id].cachedHeight : 200;
+                positions[node.id] = { 
+                    x: node.x - CARD_WIDTH / 2, 
+                    y: node.y - h / 2 
+                };
+            });
+
+            // 5. Animate transition using CSS
+            g.classed("animate-smooth", true);
+            g.selectAll(".table-card")
+                .attr("transform", d => `translate(${positions[d.id].x},${positions[d.id].y})`);
+            
+            updateLinks(); 
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+
+            // Reset Zoom to fit all tables
+            const allX = Object.values(positions).map(p => p.x);
+            const allY = Object.values(positions).map(p => p.y);
+            const minX = Math.min(...allX);
+            const minY = Math.min(...allY);
+            const maxX = Math.max(...allX) + CARD_WIDTH;
+            const maxY = Math.max(...allY) + 300;
+            
+            const targetWidth = maxX - minX;
+            const targetHeight = maxY - minY;
+            const scale = 0.7 / Math.max(targetWidth / width, targetHeight / height);
+            
+            svg.transition().duration(800).call(
+                zoom.transform,
+                d3.zoomIdentity
+                    .translate(width / 2, height / 2)
+                    .scale(scale)
+                    .translate(-(minX + targetWidth/2), -(minY + targetHeight/2))
+            ).on("end", () => {
+                g.classed("animate-smooth", false);
+            });
+        }
+
+        const hash = (s) => {
+            let h = 0;
+            for(let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+            return Math.abs(h);
+        };
+
+        const getOffset = (d) => {
+            const h = hash(d.from + d.fromColumn + d.to + d.toColumn);
+            return (h % 7 - 3) * 8;
+        };
+
+        const updateLinks = (targetTableId = null) => {
+            const relSelection = g.selectAll(".relationship");
+            const filteredRel = targetTableId ? 
+                relSelection.filter(d => d.from === targetTableId || d.to === targetTableId) : 
+                relSelection;
+
+            filteredRel.each(function(d) {
+                const fromPos = positions[d.from];
+                const toPos = positions[d.to];
+                
+                if (!fromPos || !toPos) return;
+
+                const fromTableData = tableDataMap[d.from];
+                const toTableData = tableDataMap[d.to];
+
+                if (!fromTableData || !toTableData) return;
+
+                const fromX = fromPos.x;
+                const fromY = fromPos.y;
+                const toX = toPos.x;
+                const toY = toPos.y;
+
+                const fromHeight = fromTableData.cachedHeight;
+                const toHeight = toTableData.cachedHeight;
+
+                let x1, y1, x2, y2;
+                const dx = (toX + CARD_WIDTH/2) - (fromX + CARD_WIDTH/2);
+                const dy = (toY + toHeight/2) - (fromY + fromHeight/2);
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    x1 = dx > 0 ? fromX + CARD_WIDTH : fromX;
+                    y1 = fromY + fromHeight / 2;
+                    x2 = dx > 0 ? toX : toX + CARD_WIDTH;
+                    y2 = toY + toHeight / 2;
+                } else {
+                    x1 = fromX + CARD_WIDTH / 2;
+                    y1 = dy > 0 ? fromY + fromHeight : fromY;
+                    x2 = toX + CARD_WIDTH / 2;
+                    y2 = dy > 0 ? toY : toY + toHeight;
+                }
+
+                const offset = getOffset(d);
+                
+                // Distribute connection points along the card edge to prevent overlap (OO-004)
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    x1 = dx > 0 ? fromX + CARD_WIDTH : fromX;
+                    y1 = fromY + fromHeight / 2 + offset;
+                    x2 = dx > 0 ? toX : toX + CARD_WIDTH;
+                    y2 = toY + toHeight / 2 + offset;
+                } else {
+                    x1 = fromX + CARD_WIDTH / 2 + offset;
+                    y1 = dy > 0 ? fromY + fromHeight : fromY;
+                    x2 = toX + CARD_WIDTH / 2 + offset;
+                    y2 = dy > 0 ? toY : toY + toHeight;
+                }
+
+                // Ensure the 'spine' (midX) is uniquely positioned for each relationship
+                const midX = (x1 + x2) / 2 + (offset * 1.5);
+
+                // Professional 90-degree (orthogonal) routing
+                const pathData = `M ${x1} ${y1} 
+                                 L ${midX} ${y1} 
+                                 L ${midX} ${y2} 
+                                 L ${x2} ${y2}`;
+                
+                // PERFORMANCE: Use direct DOM manipulation to bypass D3 selection overhead
+                const path = this.querySelector(".relationship-path");
+                const indicator = this.querySelector(".relationship-indicator");
+                const hitArea = this.querySelector(".relationship-hit-area");
+                
+                if (path) path.setAttribute("d", pathData);
+                if (hitArea) hitArea.setAttribute("d", pathData);
+
+                if (indicator) {
+                    // Determine direction for arrow
+                    const s_card = d.cardinality.split(':')[0];
+                    const t_card = d.cardinality.split(':')[1];
+                    
+                    let shouldReverse = false;
+                    if (d.crossFilteringBehavior !== 'Both') {
+                        if (s_card === '*' && t_card === '1') shouldReverse = true;
+                    }
+
+                    // Place arrow on the vertical segment (most stable)
+                    // Short line in the middle that accepts marker-end
+                    const arrowY = (y1 + y2) / 2;
+                    const arrowStartY = arrowY + (shouldReverse ? 1 : -1);
+                    const indicatorData = `M ${midX} ${arrowStartY} L ${midX} ${arrowY}`;
+                    
+                    indicator.setAttribute("d", indicatorData);
+                    
+                    const isHighlighted = path && path.classList.contains("highlighted");
+                    const markerId = d.crossFilteringBehavior === 'Both' ? 'arrow-both' : 
+                                   (isHighlighted ? 'arrow-single-highlighted' : 'arrow-single');
+                    
+                    indicator.setAttribute("marker-end", `url(#${markerId})`);
+                }
+                    
+                const labels = this.querySelectorAll(".cardinality-text");
+                if (labels.length >= 2) {
+                    const l1 = d.cardinality.split(':')[0];
+                    const l2 = d.cardinality.split(':')[1];
+                    
+                    labels[0].setAttribute("x", x1 + (midX > x1 ? 12 : -12));
+                    labels[0].setAttribute("y", y1 - 4);
+                    labels[0].textContent = l1;
+                    
+                    labels[1].setAttribute("x", x2 + (midX > x2 ? 12 : -12));
+                    labels[1].setAttribute("y", y2 - 4);
+                    labels[1].textContent = l2;
+                }
+            });
+        };
+
+        const getCardHeight = (d) => {
+            if (isCompact) return HEADER_HEIGHT + 10;
+            const colCount = Math.min(d.columns.length, MAX_COLS);
+            const bodyHeight = colCount * ROW_HEIGHT + (d.extraColumns > 0 ? 25 : 15);
+            return HEADER_HEIGHT + bodyHeight;
+        };
+
+        function renderDiagram() {
+            if (!currentModelData) return;
+            
+            const tables = currentModelData.tables;
+            const relationships = currentModelData.relationships;
+
+            // Pre-calculate heights and maps
+            tableDataMap = {};
+            tables.forEach(t => {
+                tableDataMap[t.id] = t;
+                t.cachedHeight = getCardHeight(t);
+            });
+            
+            // Update Status Indicator
+            const statusLine = d3.select("#status-line");
+            statusLine.select("span:first-child").text(`Tables: ${tables.length}`);
+            statusLine.select("span:last-child").text(`Relationships: ${relationships.length}`);
+
+            if (Object.keys(positions).length === 0) {
+                const savedPositions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                if (Object.keys(savedPositions).length > 0) {
+                    positions = savedPositions;
+                } else {
+                    // Sophisticated Force-Directed Layout initialization
+                    const tableDegree = {};
+                    tables.forEach(t => tableDegree[t.id] = 0);
+                    relationships.forEach(r => {
+                        tableDegree[r.from]++;
+                        tableDegree[r.to]++;
+                    });
+                    const factTableId = Object.keys(tableDegree).reduce((a, b) => (tableDegree[a] || 0) > (tableDegree[b] || 0) ? a : b);
+
+                    const nodes = tables.map(t => ({
+                        id: t.id,
+                        x: width / 2 + (Math.random() - 0.5) * 100,
+                        y: height / 2 + (Math.random() - 0.5) * 100
+                    }));
+                    const links = relationships.map(r => ({ source: r.from, target: r.to }));
+
+                    const simulation = d3.forceSimulation(nodes)
+                        .force("link", d3.forceLink(links).id(d => d.id).distance(400).strength(d => 1 / Math.min(tableDegree[d.source.id], tableDegree[d.target.id])))
+                        .force("charge", d3.forceManyBody().strength(-2500))
+                        .force("collide", d3.forceCollide().radius(CARD_WIDTH / 1.5))
+                        .force("center", d3.forceCenter(width / 2, height / 2));
+
+                    const factNode = nodes.find(n => n.id === factTableId);
+                    if (factNode) { factNode.fx = width / 2; factNode.fy = height / 2; }
+
+                    simulation.stop();
+                    for (let i = 0; i < 300; ++i) simulation.tick();
+
+                    nodes.forEach(node => {
+                        const h = tableDataMap[node.id].cachedHeight;
+                        positions[node.id] = { x: node.x - CARD_WIDTH / 2, y: node.y - h / 2 };
+                    });
+                }
+            }
+
+            const getIcon = (type) => {
+                if (type === 'key') return { char: '\uE192', color: '#D97706' };
+                if (type === 'date') return { char: '\uE787', color: '#0369A1' };
+                if (type === 'measure') return { char: '\uE94C', color: '#059669' };
+                return { char: '', color: '#605E5C' };
+            };
+
+            g.selectAll("*").remove();
+
+            const linkGroup = g.append("g").attr("class", "links");
+            const relPaths = linkGroup.selectAll(".relationship")
+                .data(relationships)
+                .enter()
+                .append("g")
+                .attr("class", "relationship");
+
+            // Visible relationship path
+            relPaths.append("path")
+                .attr("class", d => `relationship-path ${d.active ? '' : 'inactive'}`);
+
+            // Dedicated indicator for the arrow
+            relPaths.append("path")
+                .attr("class", "relationship-indicator");
+
+            // Invisible hit area for easier interaction
+            relPaths.append("path")
+                .attr("class", "relationship-hit-area")
+                .on("mouseover", function(event, d) {
+                    // Highlight the visible path
+                    const parent = d3.select(this.parentNode);
+                    parent.select(".relationship-path").classed("highlighted", true);
+                    
+                    // Update marker to highlighted version
+                    const indicator = parent.select(".relationship-indicator");
+                    if (d.crossFilteringBehavior !== 'Both') {
+                        indicator.attr("marker-end", "url(#arrow-single-highlighted)");
+                    }
+                        
+                    // Highlight connected columns
+                    g.selectAll(`.column-row[data-table="${d.from}"][data-column="${d.fromColumn}"]`)
+                        .selectAll(".column-text")
+                        .classed("column-highlighted", true);
+                    
+                    g.selectAll(`.column-row[data-table="${d.to}"][data-column="${d.toColumn}"]`)
+                        .selectAll(".column-text")
+                        .classed("column-highlighted", true);
+
+                    // Compact mode support
+                    if (isCompact) {
+                        g.selectAll(".table-card").filter(t => t.id === d.from || t.id === d.to)
+                            .select(".table-header")
+                            .classed("highlighted", true);
+                    }
+                        
+                    const tooltip = d3.select("#tooltip");
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`
+                        <div style="font-weight:600;color:#0078D4;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px;">Relationship Info</div>
+                        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 8px;">
+                            <span style="color:#666">From:</span> <strong>${d.from}.${d.fromColumn}</strong>
+                            <span style="color:#666">To:</span> <strong>${d.to}.${d.toColumn}</strong>
+                            <span style="color:#666">Cardinality:</span> <strong>${d.cardinality}</strong>
+                            <span style="color:#666">Status:</span> <strong style="color:${d.active ? '#059669' : '#DC2626'}">${d.active ? 'Active' : 'Inactive'}</strong>
+                        </div>
+                    `);
+                })
+                .on("mousemove", function(event) {
+                    d3.select("#tooltip")
+                        .style("left", (event.pageX + 15) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function(event, d) {
+                    // Reset everything
+                    const parent = d3.select(this.parentNode);
+                    parent.select(".relationship-path").classed("highlighted", false);
+                    
+                    const indicator = parent.select(".relationship-indicator");
+                    const markerId = d.crossFilteringBehavior === 'Both' ? 'arrow-both' : 'arrow-single';
+                    indicator.attr("marker-end", `url(#${markerId})`);
+
+                    g.selectAll(".column-text").classed("column-highlighted", false);
+                    g.selectAll(".table-header").classed("highlighted", false);
+                    d3.select("#tooltip").transition().duration(200).style("opacity", 0);
+                });
+
+            relPaths.append("text").attr("class", "cardinality-text").attr("text-anchor", "middle");
+            relPaths.append("text").attr("class", "cardinality-text").attr("text-anchor", "middle");
+
+            const tableNodes = g.selectAll(".table-card")
+                .data(tables)
+                .enter()
+                .append("g")
+                .attr("class", "table-card")
+                .attr("transform", d => `translate(${positions[d.id].x},${positions[d.id].y})`)
+                .on("mouseover", function(event, d) {
+                    d3.select(this).classed("highlighted", true);
+                    d3.select(this).select(".table-header").classed("highlighted", true);
+                    g.selectAll(".relationship-path").filter(r => r.from === d.id || r.to === d.id)
+                        .classed("highlighted", true);
+                })
+                .on("mouseout", function() {
+                    d3.select(this).classed("highlighted", false);
+                    d3.select(this).select(".table-header").classed("highlighted", false);
+                    g.selectAll(".relationship-path").classed("highlighted", false);
+                })
+                .call(d3.drag()
+                    .on("start", function(event, d) {
+                        d3.select(this).raise();
+                        svg.attr("cursor", "grabbing");
+                    })
+                    .on("drag", function(event, d) {
+                        positions[d.id].x += event.dx;
+                        positions[d.id].y += event.dy;
+                        // PERFORMANCE: Use direct DOM manipulation for zero-lag dragging
+                        this.setAttribute("transform", `translate(${positions[d.id].x},${positions[d.id].y})`);
+                        updateLinks(d.id);
+                    })
+                    .on("end", function() {
+                        svg.attr("cursor", "grab");
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+                    })
+                );
+
+            tableNodes.each(function(d) {
+                const node = d3.select(this);
+                const totalHeight = d.cachedHeight;
+
+                node.append("rect")
+                    .attr("class", "table-body")
+                    .attr("width", CARD_WIDTH)
+                    .attr("height", totalHeight)
+                    .attr("rx", 6)
+                    .attr("ry", 6);
+
+                node.append("rect")
+                    .attr("class", "table-header")
+                    .attr("width", CARD_WIDTH)
+                    .attr("height", HEADER_HEIGHT)
+                    .attr("rx", 6)
+                    .attr("ry", 6);
+                
+                node.append("rect")
+                    .attr("x", 0).attr("y", 0).attr("width", CARD_WIDTH).attr("height", 4)
+                    .attr("fill", "#0078D4").attr("rx", 2);
+
+                node.append("text")
+                    .attr("class", "column-icon")
+                    .attr("x", 12).attr("y", 22).text("\uE80A");
+
+                node.append("text")
+                    .attr("class", "table-title")
+                    .attr("x", 32).attr("y", 22).text(d.name);
+
+                if (!isCompact) {
+                    d.columns.slice(0, MAX_COLS).forEach((col, i) => {
+                        const iconData = getIcon(col.type);
+                        const row = node.append("g")
+                            .attr("class", "column-row")
+                            .attr("data-table", d.id)
+                            .attr("data-column", col.name)
+                            .attr("transform", `translate(0, ${HEADER_HEIGHT + i * ROW_HEIGHT + 18})`);
+                        
+                        row.append("text")
+                            .attr("class", "column-icon")
+                            .attr("x", 12).attr("y", 0)
+                            .attr("fill", iconData.color)
+                            .text(iconData.char);
+
+                        row.append("text")
+                            .attr("class", "column-text")
+                            .attr("x", 32).attr("y", 0)
+                            .text(col.name.length > 28 ? col.name.substring(0, 25) + '...' : col.name);
+                    });
+
+                    if (d.extraColumns > 0) {
+                        node.append("text")
+                            .attr("class", "more-columns")
+                            .attr("x", 32).attr("y", totalHeight - 10)
+                            .text(`+ ${d.extraColumns} more fields`);
+                    }
+                }
+            });
+
+            updateLinks();
+            
+            if (Object.keys(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')).length === 0) {
+                const bounds = g.node().getBBox();
+                const scale = 0.7 / Math.max(bounds.width / width, bounds.height / height);
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    d3.zoomIdentity
+                        .translate(width / 2, height / 2)
+                        .scale(scale)
+                        .translate(-(bounds.x + bounds.width/2), -(bounds.y + bounds.height/2))
+                );
+            }
+        }
+
+        window.onresize = function() {
+            svg.attr("width", window.innerWidth).attr("height", window.innerHeight);
+        };
+
+        window.modelViewReady = true;
+        if (window.pendingModelData) {
+            window.loadModelData(window.pendingModelData);
+            window.pendingModelData = null;
+        }
+    </script>
+</body>
+</html>

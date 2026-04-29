@@ -1,0 +1,40 @@
+{
+  "tables": {
+    "Sales": {
+      "columns": {
+        "revenue": "Sales Amount",
+        "cost": "Total Product Cost"
+      }
+    },
+    "Date": {
+      "columns": {
+        "fiscal_year": "Fiscal Year",
+        "month_key": "MonthKey",
+        "month_name": "Month"
+      }
+    },
+    "Sales Territory": {
+      "columns": {
+        "group": "Group",
+        "country": "Country"
+      }
+    },
+    "Product": {
+      "columns": {
+        "product": "Product",
+        "category": "Category",
+        "subcategory": "Subcategory"
+      }
+    }
+  },
+  "measures": {
+    "revenue": "SUM('Sales'[Sales Amount])",
+    "profit": "SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost])",
+    "orders": "COUNTROWS('Sales')",
+    "avg_order_value": "DIVIDE(SUM('Sales'[Sales Amount]), COUNTROWS('Sales'))"
+  },
+  "filters": {
+    "category": "'Product'[Category]",
+    "territory": "'Sales Territory'[Group]"
+  }
+}

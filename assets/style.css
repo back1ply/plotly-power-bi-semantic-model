@@ -1,0 +1,41 @@
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Smooth transition for DAX inspector drawer */
+.mantine-Drawer-inner {
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Card Hover Effects - Removed translateY as it causes layout shifts during interaction */
+.mantine-Paper-root {
+    transition: border-color 200ms ease, box-shadow 200ms ease !important;
+}
+
+.mantine-Paper-root:hover {
+    border-color: var(--mantine-color-blue-filled) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.focus-mode {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    background: var(--mantine-color-dark-7) !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.focus-mode .mantine-Paper-root {
+    height: 100% !important;
+}
+
+.focus-mode .js-plotly-plot {
+    height: calc(100vh - 80px) !important;
+}

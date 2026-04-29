@@ -1,0 +1,10 @@
+{
+  "name": "plotly-power-bi-semantic-model",
+  "private": true,
+  "scripts": {
+    "build:dax-grammar": "node scripts/build_dax_grammar.mjs"
+  },
+  "devDependencies": {
+    "tm-to-monarch": "N/A — package not on npm (2024-03); grammar is hand-crafted in scripts/build_dax_grammar.mjs"
+  }
+}

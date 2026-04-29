@@ -1,0 +1,28 @@
+{
+  "startup": {
+    "sales_by_date": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Date'[Fiscal Year],\n    'Date'[Month],\n    \"SalesAmount\", SUM('Sales'[Sales Amount])\n)",
+    "sales_by_category": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Product'[Category],\n    \"SalesAmount\", SUM('Sales'[Sales Amount])\n)",
+    "sales_by_territory": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Sales Territory'[Group],\n    \"SalesAmount\", SUM('Sales'[Sales Amount])\n)",
+    "top_n_products": "EVALUATE\nTOPN(\n    10,\n    SUMMARIZECOLUMNS(\n        'Product'[Product],\n        'Product'[Category],\n        \"SalesAmount\", SUM('Sales'[Sales Amount]),\n        \"Profit\", SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost])\n    ),\n    [SalesAmount],\n    DESC\n)",
+    "kpi_totals": "EVALUATE\nROW(\n    \"Revenue\", SUM('Sales'[Sales Amount]),\n    \"Profit\", SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost]),\n    \"Orders\", DISTINCTCOUNT('Sales Order'[Sales Order]),\n    \"AvgOrderValue\", DIVIDE(SUM('Sales'[Sales Amount]), DISTINCTCOUNT('Sales Order'[Sales Order]))\n)",
+    "model_schema": "EVALUATE\nUNION(\n    SELECTCOLUMNS(\n        FILTER(\n            INFO.VIEW.COLUMNS(),\n            [Type] <> \"RowNumber\" &&\n            [DataCategory] <> \"RowNumber\" &&\n            [IsHidden] = FALSE() &&\n            NOT(CONTAINSSTRING([Name], \"RowNumber\"))\n        ),\n        \"Table\", [Table],\n        \"Name\", [Name],\n        \"Type\", \"Column\"\n    ),\n    SELECTCOLUMNS(\n        FILTER(\n            INFO.VIEW.MEASURES(),\n            [IsHidden] = FALSE()\n        ),\n        \"Table\", [Table],\n        \"Name\", [Name],\n        \"Type\", \"Measure\"\n    )\n)",
+    "model_relationships": "EVALUATE\nSELECTCOLUMNS(\n    INFO.VIEW.RELATIONSHIPS(),\n    \"FromTable\", [FromTable],\n    \"FromColumn\", [FromColumn],\n    \"ToTable\", [ToTable],\n    \"ToColumn\", [ToColumn],\n    \"FromCardinality\", [FromCardinality],\n    \"ToCardinality\", [ToCardinality],\n    \"IsActive\", [IsActive],\n    \"CrossFilteringBehavior\", [CrossFilteringBehavior]\n)"
+  },
+  "dynamic": {
+    "summarizecolumns": "EVALUATE\nSUMMARIZECOLUMNS(\n    {columns}\n    {measures}\n)"
+  },
+  "fragments": {
+    "measure": {
+      "Revenue": "SUM('Sales'[Sales Amount])",
+      "Profit": "SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost])",
+      "Orders": "DISTINCTCOUNT('Sales Order'[Sales Order])",
+      "Avg Order Value": "DIVIDE(SUM('Sales'[Sales Amount]), DISTINCTCOUNT('Sales Order'[Sales Order]))"
+    },
+    "dimension": {
+      "Category": "'Product'[Category]",
+      "Territory Group": "'Sales Territory'[Group]",
+      "Country": "'Sales Territory'[Country]",
+      "Month": "'Date'[Month]"
+    }
+  }
+}

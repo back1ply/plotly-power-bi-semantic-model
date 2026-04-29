@@ -1,0 +1,81 @@
+# Pre-commit hooks for high-quality code
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exclude=tests/]
+      - id: ruff-format
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.400
+    hooks:
+      - id: pyright
+        additional_dependencies: [pandas, plotly, dash, dash-mantine-components, diskcache, msal, python-dotenv]
+        exclude: ^tests/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [pandas, plotly, dash, dash-mantine-components, dash-ag-grid]
+        args: [--ignore-missing-imports]
+        exclude: ^tests/
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        args: [--exclude, tests/]
+
+  - repo: https://github.com/PyCQA/safety
+    rev: 4.0.0
+    hooks:
+      - id: safety
+
+  - repo: https://github.com/guilatrova/tryceratops
+    rev: v2.3.0
+    hooks:
+      - id: tryceratops
+        exclude: ^tests/
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        exclude: ^tests/
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.23.6
+    hooks:
+      - id: typos
+        exclude: ^tests/
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-d, "{extends: relaxed, rules: {line-length: {max: 120}}}"]
+
+  - repo: https://github.com/awebdeveloper/pre-commit-stylelint
+    rev: 16.12.0
+    hooks:
+      - id: stylelint
+        additional_dependencies: ["stylelint-config-standard"]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
