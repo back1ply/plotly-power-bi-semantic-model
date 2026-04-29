@@ -69,13 +69,17 @@
   }
 
   // Expose insert-at-cursor for schema panel click callbacks.
+  // Resolves the Ace instance fresh each call to survive SPA re-mounts.
   window._daxEditorInsert = function (expr) {
-    var aceInstance = window._daxAceEditor;
-    if (!aceInstance) return;
+    var wrapperEl = document.getElementById("dax-editor");
+    if (!wrapperEl) return;
+    var inner = wrapperEl.querySelector(".ace_editor");
+    if (!inner) return;
+    var aceInstance = ace.edit(inner);
     var cursor = aceInstance.getCursorPosition();
     var line = aceInstance.session.getLine(cursor.row);
     var before = line.substring(0, cursor.column);
-    var sep = before && !/[\s\n]$/.test(before) ? " " : "";
+    var sep = before && !/\s$/.test(before) ? " " : "";
     aceInstance.session.insert(cursor, sep + expr);
     aceInstance.focus();
   };

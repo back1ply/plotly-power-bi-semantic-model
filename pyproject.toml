@@ -160,9 +160,9 @@ reportMissingImports = true
 reportUndefinedVariable = true
 reportUnusedImport = true
 reportMissingModuleSource = false
-pythonVersion = "3.14"
+pythonVersion = "3.12"
 reportMissingTypeStubs = false
-extraPaths = [".", "C:/Users/pc/AppData/Roaming/Python/Python314/site-packages"]
+extraPaths = ["."]
 include = ["app.py", "utils", "components", "pages", "domain", "infrastructure", "presentation", "application"]
 exclude = [".claude", ".planning", ".cache", "logs", "scripts", "docs", "tests"]
 

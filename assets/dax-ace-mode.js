@@ -1,5 +1,5 @@
 // DAX syntax mode for Ace Editor.
-// Keywords sourced from dax-monarch.js — keep in sync.
+// Keywords match assets/dax-ace-completions.js — keep both in sync.
 (function () {
   "use strict";
 
