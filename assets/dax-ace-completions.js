@@ -3,6 +3,8 @@
 (function () {
   "use strict";
 
+  var _completerRegistered = false;
+
   var DAX_KEYWORDS = [
     "EVALUATE","RETURN","VAR","DEFINE","MEASURE","COLUMN","TABLE",
     "CALCULATE","CALCULATETABLE","FILTER","ALL","ALLEXCEPT","ALLSELECTED",
@@ -79,28 +81,31 @@
   };
 
   function registerCompleter(aceInstance) {
+    if (_completerRegistered) return;
     var langTools = ace.require("ace/ext/language_tools");
+    if (!langTools) {
+      console.warn("ace/ext/language_tools not available — DAX completions disabled");
+      return;
+    }
     langTools.addCompleter({
       getCompletions: function (editor, session, pos, prefix, callback) {
         callback(null, buildCompletions());
       },
     });
-    aceInstance.setOptions({
-      enableBasicAutocompletion: true,
-      enableLiveAutocompletion: true,
-    });
+    _completerRegistered = true;
   }
 
-  function applyCompletions() {
-    // dash_ace renders a wrapper div with id="dax-editor"; Ace attaches inside it.
+  function applyCompletions(attempt) {
+    attempt = attempt || 0;
+    if (attempt > 50) return; // ~7.5s max wait
     var wrapperEl = document.getElementById("dax-editor");
     if (!wrapperEl) {
-      setTimeout(applyCompletions, 150);
+      setTimeout(function () { applyCompletions(attempt + 1); }, 150);
       return;
     }
     var inner = wrapperEl.querySelector(".ace_editor");
     if (!inner) {
-      setTimeout(applyCompletions, 150);
+      setTimeout(function () { applyCompletions(attempt + 1); }, 150);
       return;
     }
     var aceInstance = ace.edit(inner);
@@ -109,8 +114,8 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", applyCompletions);
+    document.addEventListener("DOMContentLoaded", function () { applyCompletions(0); });
   } else {
-    applyCompletions();
+    applyCompletions(0);
   }
 })();

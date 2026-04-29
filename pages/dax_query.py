@@ -291,8 +291,8 @@ def serve_layout(repo: SchemaPort):
                                             mode="dax",
                                             theme="monokai",
                                             tabSize=4,
-                                            enableBasicAutocompletion=False,
-                                            enableLiveAutocompletion=False,
+                                            enableBasicAutocompletion=True,
+                                            enableLiveAutocompletion=True,
                                             placeholder='EVALUATE\n    ROW("Value", 1)',
                                             style={
                                                 "height": "350px",
