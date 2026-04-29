@@ -83,7 +83,6 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
             {%scripts%}
             {%renderer%}
             <script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
         </footer>
     </body>
 </html>"""

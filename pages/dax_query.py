@@ -8,7 +8,10 @@ import dash
 import dash_ag_grid as dag
 import dash_mantine_components as dmc
 from dash import dcc
-from dash import html, Input, Output, State, ALL
+from dash import html
+from dash import Input
+from dash import Output
+from dash import State
 from dash_iconify import DashIconify
 
 from domain import QueryError
@@ -154,8 +157,6 @@ def serve_layout(repo: SchemaPort):
             html.Div(
                 style={"display": "none"},
                 children=[
-                    dcc.Store(id="dax-query-input", data=""),
-                    dcc.Store(id="dax-editor-sync-ack", data=0),
                     dcc.Store(id="dax-schema-store", data=schema_data),
                     dcc.Download(id="dax-query-download"),
                 ]
@@ -269,13 +270,9 @@ def serve_layout(repo: SchemaPort):
                                             ]
                                         ),
                                         html.Div(
-                                            id="dax-editor-container",
-                                            style={
-                                                "height": "350px",
-                                                "border": "1px solid var(--mantine-color-dark-4)",
-                                                "borderRadius": "4px",
-                                                "overflow": "hidden"
-                                            },
+                                            id="dax-editor-placeholder",
+                                            children="Editor loading...",
+                                            style={"height": "350px", "border": "1px solid gray", "padding": "8px"},
                                         ),
                                     ],
                                 ),

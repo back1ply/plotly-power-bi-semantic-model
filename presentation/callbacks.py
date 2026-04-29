@@ -262,7 +262,7 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
         Output("dax-query-results", "columnDefs"),
         Output("dax-query-status", "children"),
         Input("dax-query-execute", "n_clicks"),
-        State("dax-query-input", "data"),
+        State("dax-schema-store", "data"),
         prevent_initial_call=True,
     )
     @safe_callback
@@ -295,69 +295,9 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
         except Exception as exc:
             return [], [], f"✗ {exc}"
 
-    # Store → Monaco: sync external writes back into editor
-    app.clientside_callback(
-        """
-        function(data) {
-            if (window._updateMonacoFromExternal) {
-                window._updateMonacoFromExternal(data);
-            }
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output("dax-editor-sync-ack", "data", allow_duplicate=True),
-        Input("dax-query-input", "data"),
-        prevent_initial_call=True,
-    )
-
-    # Schema-insert: insert clicked field expression at Monaco cursor position
-    app.clientside_callback(
-        """
-        function(nClicks, ids, currentValue) {
-            const ctx = window.dash_clientside.callback_context;
-            if (!ctx || !ctx.triggered || ctx.triggered.length === 0) {
-                return window.dash_clientside.no_update;
-            }
-            const anyClicked = nClicks && nClicks.some(function(n) { return n && n > 0; });
-            if (!anyClicked) return window.dash_clientside.no_update;
-
-            const propId = ctx.triggered[0].prop_id;
-            const idStr = propId.substring(0, propId.lastIndexOf('.'));
-            let expr = '';
-            try { expr = JSON.parse(idStr).expr; } catch(e) {
-                return window.dash_clientside.no_update;
-            }
-            if (!expr) return window.dash_clientside.no_update;
-
-            const editor = window._dashMonacoEditor;
-            if (editor) {
-                const selection = editor.getSelection();
-                const model = editor.getModel();
-                const lineContent = model.getLineContent(selection.startLineNumber);
-                const before = lineContent.substring(0, selection.startColumn - 1);
-                const sep = (before && !/[ \\n]$/.test(before)) ? ' ' : '';
-                editor.executeEdits('schema-insert', [{
-                    range: selection,
-                    text: sep + expr,
-                    forceMoveMarkers: true,
-                }]);
-                editor.focus();
-                return editor.getValue();
-            }
-            const val = currentValue || '';
-            const sep = (val && !/[ \\n]$/.test(val)) ? ' ' : '';
-            return val + sep + expr;
-        }
-        """,
-        Output("dax-query-input", "data", allow_duplicate=True),
-        Input({"type": "schema-insert", "expr": ALL}, "n_clicks"),
-        State({"type": "schema-insert", "expr": ALL}, "id"),
-        State("dax-query-input", "data"),
-        prevent_initial_call=True,
-    )
 
     @app.callback(
-        Output("dax-query-input", "data", allow_duplicate=True),
+        Output("dax-schema-store", "data"),
         Input("dax-query-clear", "n_clicks"),
         prevent_initial_call=True,
     )
@@ -399,11 +339,11 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
             return [window.dash_clientside.no_update, window.dash_clientside.no_update];
         }
         """,
-        Output("dax-query-input", "data", allow_duplicate=True),
+        Output("dax-schema-store", "data", allow_duplicate=True),
         Output("dax-query-status", "children", allow_duplicate=True),
         Input("dax-query-format", "n_clicks"),
         Input("dax-query-copy", "n_clicks"),
-        State("dax-query-input", "data"),
+        State("dax-schema-store", "data"),
         prevent_initial_call=True,
     )
 
@@ -430,16 +370,3 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
         """Disable Export CSV button when grid has no data."""
         return not bool(row_data)
 
-    # Schema autocomplete: register Monaco completion provider when schema loads
-    app.clientside_callback(
-        """
-        function(schemaData) {
-            if (!schemaData || !schemaData.tables) return window.dash_clientside.no_update;
-            window._daxSchemaData = schemaData;
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output("dax-editor-sync-ack", "data", allow_duplicate=True),
-        Input("dax-schema-store", "data"),
-        prevent_initial_call="initial_duplicate",
-    )
