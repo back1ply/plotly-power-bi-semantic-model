@@ -365,3 +365,42 @@ def _register_dax_callbacks(app: Dash, repo: RepositoryPort) -> None:
     def _toggle_export_button(row_data: list[dict[str, Any]] | None) -> bool:
         """Disable Export CSV button when grid has no data."""
         return not bool(row_data)
+
+    app.clientside_callback(
+        """
+        function(schemaData) {
+            if (!schemaData || !schemaData.tables) return window.dash_clientside.no_update;
+            window._daxSchemaData = schemaData;
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output("dax-schema-ack", "data"),
+        Input("dax-schema-store", "data"),
+        prevent_initial_call=False,
+    )
+
+    app.clientside_callback(
+        """
+        function(nClicks) {
+            var ctx = window.dash_clientside.callback_context;
+            if (!ctx || !ctx.triggered || ctx.triggered.length === 0) {
+                return window.dash_clientside.no_update;
+            }
+            var anyClicked = nClicks && nClicks.some(function(n) { return n && n > 0; });
+            if (!anyClicked) return window.dash_clientside.no_update;
+
+            var propId = ctx.triggered[0].prop_id;
+            var idStr = propId.substring(0, propId.lastIndexOf('.'));
+            var expr = '';
+            try { expr = JSON.parse(idStr).expr; } catch(e) {
+                return window.dash_clientside.no_update;
+            }
+            if (!expr || !window._daxEditorInsert) return window.dash_clientside.no_update;
+            window._daxEditorInsert(expr);
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output("dax-schema-ack", "data", allow_duplicate=True),
+        Input({"type": "schema-insert", "expr": ALL}, "n_clicks"),
+        prevent_initial_call=True,
+    )

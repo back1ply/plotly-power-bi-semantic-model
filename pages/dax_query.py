@@ -167,6 +167,7 @@ def serve_layout(repo: SchemaPort):
                 style={"display": "none"},
                 children=[
                     dcc.Store(id="dax-schema-store", data=schema_data),
+                    dcc.Store(id="dax-schema-ack", data=0),
                     dcc.Download(id="dax-query-download"),
                 ],
             ),
