@@ -287,7 +287,7 @@ def serve_layout(repo: SchemaPort):
                                         dash_ace.DashAceEditor(
                                             id="dax-editor",
                                             value="",
-                                            mode="text",
+                                            mode="dax",
                                             theme="monokai",
                                             tabSize=4,
                                             enableBasicAutocompletion=False,
