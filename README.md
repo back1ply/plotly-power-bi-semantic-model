@@ -38,6 +38,7 @@ CLIENT_ID=your-app-registration-client-id
 CLIENT_SECRET=your-client-secret-value
 WORKSPACE_ID=your-power-bi-workspace-id
 DATASET_ID=your-power-bi-dataset-id
+REPORT_ID=your-power-bi-report-id
 ```
 
 ### Azure Setup
@@ -63,46 +64,57 @@ App runs at `http://127.0.0.1:8050`
 | `CLIENT_SECRET` | App client secret | — |
 | `WORKSPACE_ID` | Power BI workspace ID | — |
 | `DATASET_ID` | Power BI dataset ID | — |
+| `REPORT_ID` | Power BI report ID (for embed) | — |
 | `APP_TITLE` | Sidebar brand name | `Sales Dashboard` |
 | `PRIMARY_COLOR` | Mantine color name for accent | `blue` |
 | `FONT_FAMILY` | CSS font-family string | `'Inter', sans-serif` |
 | `CACHE_TTL_SECONDS` | Cache TTL in seconds | `3600` |
-| `REQUEST_TIMEOUT_SECONDS` | API request timeout | `60` |
 | `USE_DISK_CACHE` | Persist cache to disk | `false` |
+| `CACHE_DIR` | Disk cache directory | `./.cache` |
 | `PRELOAD_DATA` | Populate cache at startup | `false` |
 | `PBI_API_BASE` | Power BI REST API base URL | `https://api.powerbi.com/v1.0/myorg` |
+| `REQUEST_TIMEOUT_SECONDS` | API request timeout | `60` |
+| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `120` |
+| `RATE_LIMIT_WINDOW_SECONDS` | Rate limit window size | `60` |
+| `STARTUP_RETRY_MAX` | Cache preload retry attempts | `3` |
+| `STARTUP_RETRY_DELAY` | Seconds between retries | `2.0` |
+| `FLASK_DEBUG` | Enable Flask debug mode | `false` |
+| `DAX_PATH` | Path to named DAX queries JSON | `./queries/dax.json` |
 
 ## Project Structure
 
 ```
 .
-├── app.py                   # Application factory + entry point
-├── config.py                # AppConfig + ThemeConfig (env-driven)
-├── layout.py                # AppShell layout
-├── di.py                    # Dependency injection container
-├── domain/                  # Core entities, ports, exceptions, utils
-├── application/             # Use cases and data loading
-├── infrastructure/          # PBI client, cache, auth, DAX loader
-│   ├── pbi_client.py
+├── app.py                        # Application factory + entry point
+├── config.py                     # AppConfig + ThemeConfig (env-driven)
+├── layout.py                     # AppShell layout
+├── dependency_injection.py       # Dependency injection container
+├── domain/                       # Core entities, ports, exceptions, utils
+├── application/                  # Use cases and data loading
+├── infrastructure/               # PBI client, cache, auth, DAX loader
+│   ├── power_bi_client.py
+│   ├── power_bi_embed.py
 │   ├── cache.py
 │   ├── auth.py
-│   ├── dax.py
-│   └── repository.py
-├── presentation/            # UI logic
-│   ├── callbacks.py         # All Dash callbacks
-│   ├── charts.py            # Plotly chart builders
-│   ├── constants.py         # Nav routes, UI labels
-│   ├── theme.py             # Plotly color palette
+│   ├── data_analysis_expressions.py
+│   ├── repository.py
+│   ├── schema_service.py
+│   └── utils.py
+├── presentation/                 # UI logic
+│   ├── callbacks/                # Dash callbacks (split by page)
+│   ├── builders/                 # Component builder helpers
+│   ├── routes.py                 # Internal Flask routes
+│   ├── charts.py                 # Plotly chart builders
+│   ├── theme.py                  # Plotly color palette
 │   └── helpers.py
 ├── components/
-│   └── base.py              # Sidebar, DAX inspector drawer
+│   └── base.py                   # Sidebar, DAX inspector drawer
 ├── pages/
-│   ├── home.py              # Executive Summary (/)
-│   ├── schema.py            # Data Model Schema (/schema)
-│   ├── model_view.py        # Model Diagram (/model)
-│   └── dax_query.py         # DAX Query View (/dax)
+│   ├── home.py                   # Executive Summary (/)
+│   ├── model_view.py             # Model Diagram (/model)
+│   └── data_analysis_expressions_query.py  # DAX Query View (/dax)
 ├── queries/
-│   └── dax.json             # Named DAX queries
+│   └── dax.json                  # Named DAX queries
 ├── assets/
 │   └── style.css
 └── tests/
