@@ -1,5 +1,7 @@
 # Power BI Sales Dashboard
 
+> Built for the [Power BI × Plotly App Challenge](https://community.plotly.com/t/power-bi-plotly-app-challenge/96497) — a Dash app that exposes any Power BI semantic model as a fully branded, white-label analytics shell without Power BI Embedded costs or Microsoft UI lock-in.
+
 A white-label Dash BI shell that connects to any Power BI semantic model and delivers fully branded analytics — without Power BI Embedded costs or Microsoft UI lock-in.
 
 ## Features
