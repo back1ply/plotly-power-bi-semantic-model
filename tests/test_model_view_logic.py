@@ -10,24 +10,28 @@ from domain import ColumnType, ModelSchema, TableSchema
 from domain.services import ColumnClassifier
 
 def test_detect_column_type_key():
-    assert ColumnClassifier.detect_type("CustomerKey", "Sales") == ColumnType.KEY
-    assert ColumnClassifier.detect_type("ID", "Product") == ColumnType.KEY
-    assert ColumnClassifier.detect_type("SurrogateID", "Product") == ColumnType.KEY
+    classifier = ColumnClassifier()
+    assert classifier.detect_type("CustomerKey", "Sales") == ColumnType.KEY
+    assert classifier.detect_type("ID", "Product") == ColumnType.KEY
+    assert classifier.detect_type("SurrogateID", "Product") == ColumnType.KEY
 
 def test_detect_column_type_date():
-    assert ColumnClassifier.detect_type("OrderDate", "Sales") == ColumnType.DATE
-    assert ColumnClassifier.detect_type("FiscalYear", "Date") == ColumnType.DATE
-    assert ColumnClassifier.detect_type("Month", "Date") == ColumnType.DATE
+    classifier = ColumnClassifier()
+    assert classifier.detect_type("OrderDate", "Sales") == ColumnType.DATE
+    assert classifier.detect_type("FiscalYear", "Date") == ColumnType.DATE
+    assert classifier.detect_type("Month", "Date") == ColumnType.DATE
 
 def test_detect_column_type_measure():
-    assert ColumnClassifier.detect_type("SalesAmount", "Sales") == ColumnType.MEASURE
-    assert ColumnClassifier.detect_type("Profit", "Sales") == ColumnType.MEASURE
+    classifier = ColumnClassifier()
+    assert classifier.detect_type("Revenue", "Sales") == ColumnType.MEASURE
+    assert classifier.detect_type("Profit", "Sales") == ColumnType.MEASURE
     # Not in Sales table, shouldn't be measure by default unless measure list
-    assert ColumnClassifier.detect_type("Amount", "Other") == ColumnType.REGULAR
+    assert classifier.detect_type("Amount", "Other") == ColumnType.REGULAR
 
 def test_detect_column_type_hidden():
-    assert ColumnClassifier.detect_type("RowNumber", "Any") == ColumnType.HIDDEN
-    assert ColumnClassifier.detect_type("InternalID", "Any") == ColumnType.HIDDEN
+    classifier = ColumnClassifier()
+    assert classifier.detect_type("RowNumber", "Any") == ColumnType.HIDDEN
+    assert classifier.detect_type("InternalID", "Any") == ColumnType.HIDDEN
 
 def test_build_model_data_structure():
     schema = ModelSchema(tables={
@@ -43,7 +47,8 @@ def test_build_model_data_structure():
             is_active=True, cross_filtering_behavior="OneDirection"
         )
     ]
-    data = _build_model_data(schema, relationships)
+    classifier = ColumnClassifier()
+    data = _build_model_data(schema, relationships, classifier)
 
     assert "tables" in data
     assert "relationships" in data
@@ -65,7 +70,8 @@ def test_build_model_data_column_limit():
         "LargeTable": TableSchema(name="LargeTable", columns=cols, measures=[]),
     })
     
-    data = _build_model_data(schema, [])
+    classifier = ColumnClassifier()
+    data = _build_model_data(schema, [], classifier)
     table = data["tables"][0]
     
     assert len(table["columns"]) == 12

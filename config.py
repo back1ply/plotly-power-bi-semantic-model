@@ -1,8 +1,3 @@
-"""Configuration.
-
-Provides configuration management for the application.
-"""
-
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -19,15 +14,7 @@ T = TypeVar("T")
 
 
 def _env_field[T](key: str, default: T, converter: Callable[[Any], T] | None = None) -> Any:
-    """Helper to create a dataclass field mapped to an environment variable.
-
-    Args:
-        key: Environment variable key.
-        default: Default value if environment variable is not set.
-        converter: Optional converter function. If None, infers from type(default).
-    """
     if converter is None:
-        # Infer converter from default type, fallback to str
         _type = type(default)
         _conv = _type if _type is not Any else str
     else:
@@ -38,8 +25,6 @@ def _env_field[T](key: str, default: T, converter: Callable[[Any], T] | None = N
 
 @dataclass(frozen=True)
 class ThemeConfig:
-    """White-label theming configuration loaded from environment variables."""
-
     app_title: str = _env_field("APP_TITLE", "Sales Dashboard")
     primary_color: str = _env_field("PRIMARY_COLOR", "blue")
     font_family: str = _env_field("FONT_FAMILY", "'Inter', sans-serif")
@@ -47,8 +32,6 @@ class ThemeConfig:
 
 @dataclass(frozen=True)
 class AppConfig:
-    """Application configuration loaded from environment variables."""
-
     tenant_id: str = _env_field("TENANT_ID", "")
     client_id: str = _env_field("CLIENT_ID", "")
     client_secret: str = _env_field("CLIENT_SECRET", "")
@@ -67,7 +50,10 @@ class AppConfig:
     preload_data: bool = _env_field("PRELOAD_DATA", False, lambda v: str(v).lower() == "true")
     debug: bool = _env_field("FLASK_DEBUG", False, lambda v: str(v).lower() in ("true", "1", "t"))
 
-    # DAX query path (defaults to queries/dax.json relative to project root)
+    @property
+    def base_dir(self) -> Path:
+        return Path(__file__).resolve().parent
+
     dax_path: Path = field(
         default_factory=lambda: Path(
             os.getenv(
@@ -76,3 +62,7 @@ class AppConfig:
             )
         )
     )
+
+
+def get_env_var(key: str, default: Any = None) -> Any:
+    return os.environ.get(key, default)

@@ -11,7 +11,9 @@ import json
 import logging
 from pathlib import Path
 
-from domain import DaxLoaderPort
+from domain import DataAnalysisExpressionsFragment
+from domain import DataAnalysisExpressionsLoaderPort
+from domain import DataAnalysisExpressionsTemplate
 from domain import FragmentCategory
 from domain import QueryKey
 from domain import QueryNotFoundError
@@ -19,7 +21,7 @@ from domain import QueryNotFoundError
 logger = logging.getLogger(__name__)
 
 
-class DaxQueryLoader(DaxLoaderPort):
+class DataAnalysisExpressionsQueryLoader(DataAnalysisExpressionsLoaderPort):
     """Loads DAX queries from JSON files."""
 
     def __init__(self, dax_path: Path) -> None:
@@ -35,7 +37,7 @@ class DaxQueryLoader(DaxLoaderPort):
         self._loaded = False
 
     @classmethod
-    def from_path(cls, dax_path: Path) -> "DaxQueryLoader":
+    def from_path(cls, dax_path: Path) -> "DataAnalysisExpressionsQueryLoader":
         """Factory method to load DAX queries from a specific disk path.
         Instantiates the loader without immediate I/O.
         """
@@ -51,14 +53,14 @@ class DaxQueryLoader(DaxLoaderPort):
             return
 
         try:
-            with self._path.open(encoding="utf-8") as f:
-                content = json.load(f)
+            with self._path.open(encoding="utf-8") as file_handle:
+                content = json.load(file_handle)
                 self._startup = content.get("startup", {})
                 self._dynamic = content.get("dynamic", {})
                 self._fragments = content.get("fragments", {})
                 self._loaded = True
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.error("Failed to load DAX from %s: %s", self._path, exc)
+        except (json.JSONDecodeError, OSError) as exception:
+            logger.error("Failed to load DAX from %s: %s", self._path, exception)
 
     def get_raw_query(self, key: QueryKey) -> str:
         """Get DAX query string for given key from startup queries."""
@@ -69,19 +71,19 @@ class DaxQueryLoader(DaxLoaderPort):
             )
         return self._startup[key]
 
-    def get_query_template(self, key: str) -> str:
-        """Get formattable DAX query string for given key from dynamic queries."""
+    def get_query_template(self, key: str) -> DataAnalysisExpressionsTemplate:
+        """Get formattable DAX query template for given key from dynamic queries. (OO-004)"""
         self._ensure_loaded()
         if key not in self._dynamic:
             raise QueryNotFoundError(
                 f"Unknown dynamic query key: {key!r}. Available: {list(self._dynamic)}"
             )
-        return self._dynamic[key]
+        return DataAnalysisExpressionsTemplate(content=self._dynamic[key], key=key)
 
-    def get_fragment(self, category: FragmentCategory, key: str) -> str:
-        """Get a DAX fragment (e.g., measure or definition)."""
+    def get_fragment(self, category: FragmentCategory, key: str) -> DataAnalysisExpressionsFragment:
+        """Get a DAX fragment (e.g., measure or definition). (OO-004)"""
         self._ensure_loaded()
-        cat = self._fragments.get(category.value, {})
-        if key not in cat:
+        category_store = self._fragments.get(category.value, {})
+        if key not in category_store:
             raise QueryNotFoundError(f"Unknown fragment key: {key!r} in category {category!r}.")
-        return cat[key]
+        return DataAnalysisExpressionsFragment(content=category_store[key], category=category, key=key)

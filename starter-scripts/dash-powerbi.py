@@ -1,6 +1,6 @@
 import os
 
-import pandas as pd
+import polars as pl
 import requests
 from dash import Dash
 from dash import dash_table
@@ -47,7 +47,7 @@ res = requests.post(query_url, headers={"Authorization": f"Bearer {access_token}
 
 
 rows = res.json()["results"][0]["tables"][0]["rows"]
-df = pd.DataFrame(rows)
+df = pl.DataFrame(rows)
 
 # === STEP 3: DASH APP ===
 app = Dash(__name__)
@@ -56,7 +56,7 @@ app.layout = html.Div(
     [
         html.H3("Power BI Data"),
         dash_table.DataTable(
-            data=df.to_dict("records"),
+            data=df.to_dicts(),
             columns=[{"name": c, "id": c} for c in df.columns],
             page_size=10,
         ),

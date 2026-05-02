@@ -4,22 +4,23 @@ import logging
 
 import requests
 
+from domain import EmbedConfig
 from domain import EmbedPort
 from domain import QueryError
 from domain import TokenProviderPort
 
-from .pbi_client import PbiClientConfig
+from .power_bi_client import PowerBiClientConfiguration
 
 logger = logging.getLogger(__name__)
 
 
-class PbiEmbedService(EmbedPort):
+class PowerBiEmbedService(EmbedPort):
     """Implementation of report embedding using Power BI REST API. (CA-001)"""
 
     def __init__(
         self,
         token_provider: TokenProviderPort,
-        config: PbiClientConfig,
+        config: PowerBiClientConfiguration,
     ) -> None:
         """Initialize service with dependencies.
 
@@ -30,14 +31,14 @@ class PbiEmbedService(EmbedPort):
         self._token_provider = token_provider
         self._config = config
 
-    def get_embed_config(self, report_id: str) -> dict[str, str]:
+    def get_embed_config(self, report_id: str) -> EmbedConfig:
         """Return embed URL and token for a report.
 
         Args:
             report_id: GUID of the Power BI report to embed.
 
         Returns:
-            Dict with embedUrl, accessToken, and reportId.
+            EmbedConfig with embedUrl, accessToken, and reportId.
 
         Raises:
             QueryError: If the REST calls fail.
@@ -76,15 +77,15 @@ class PbiEmbedService(EmbedPort):
                     f"Failed to generate embed token ({token_resp.status_code}): {token_resp.text}"
                 )
             embed_token: str = token_resp.json()["token"]
-        except Exception as exc:
-            if isinstance(exc, QueryError):
+        except Exception as exception:
+            if isinstance(exception, QueryError):
                 raise
             # Minimal coupling to requests in error reporting
-            logger.error("PbiEmbedService failure: %s", exc)
-            raise QueryError(f"Power BI embedding failure: {exc}") from exc
+            logger.error("PowerBiEmbedService failure: %s", exception)
+            raise QueryError(f"Power BI embedding failure: {exception}") from exception
 
-        return {
-            "embedUrl": embed_url,
-            "accessToken": embed_token,
-            "reportId": report_id,
-        }
+        return EmbedConfig(
+            report_id=report_id,
+            embed_url=embed_url,
+            access_token=embed_token,
+        )

@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from domain import QueryKey, QueryNotFoundError, FragmentCategory
+from domain import DataAnalysisExpressionsFragment, DataAnalysisExpressionsTemplate, QueryKey, QueryNotFoundError, FragmentCategory
 from infrastructure.query_service import QueryService
 
 
@@ -18,40 +18,40 @@ class TestQueryService:
     def test_get_raw_query_success(self, service, mock_loader):
         """get_raw_query delegates to loader."""
         mock_loader.get_raw_query.return_value = "EVALUATE Table"
-        result = service.get_raw_query(QueryKey.KPI_TOTALS)
+        result = service.get_raw_query(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
         assert result == "EVALUATE Table"
-        mock_loader.get_raw_query.assert_called_once_with(QueryKey.KPI_TOTALS)
+        mock_loader.get_raw_query.assert_called_once_with(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
     def test_get_raw_query_not_found(self, service, mock_loader):
         """get_raw_query raises QueryNotFoundError on loader error."""
         mock_loader.get_raw_query.side_effect = QueryNotFoundError("Missing")
         with pytest.raises(QueryNotFoundError, match="Query not found for key"):
-            service.get_raw_query(QueryKey.KPI_TOTALS)
+            service.get_raw_query(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
     def test_get_query_template_success(self, service, mock_loader):
         """get_query_template delegates to loader."""
-        mock_loader.get_query_template.return_value = "SELECT {col} FROM Table"
+        mock_loader.get_query_template.return_value = DataAnalysisExpressionsTemplate("SELECT {col} FROM Table", "my_template")
         result = service.get_query_template("my_template")
-        assert result == "SELECT {col} FROM Table"
+        assert result.content == "SELECT {col} FROM Table"
         mock_loader.get_query_template.assert_called_once_with("my_template")
 
     def test_get_fragment_success(self, service, mock_loader):
         """get_fragment delegates to loader with Enum."""
-        mock_loader.get_fragment.return_value = "'Table'[Measure]"
+        mock_loader.get_fragment.return_value = DataAnalysisExpressionsFragment("'Table'[Measure]", FragmentCategory.MEASURE, "Revenue")
         result = service.get_fragment(FragmentCategory.MEASURE, "Revenue")
-        assert result == "'Table'[Measure]"
+        assert result.content == "'Table'[Measure]"
         mock_loader.get_fragment.assert_called_once_with(FragmentCategory.MEASURE, "Revenue")
 
     def test_get_formatted_query_success(self, service, mock_loader):
         """get_formatted_query formats template with parameters."""
-        mock_loader.get_query_template.return_value = "EVALUATE FILTER(Table, [Col] = {val})"
+        mock_loader.get_query_template.return_value = DataAnalysisExpressionsTemplate("EVALUATE FILTER(Table, [Col] = {val})", "template_key")
         result = service.get_formatted_query("template_key", parameters={"val": 100})
         assert result == "EVALUATE FILTER(Table, [Col] = 100)"
 
     def test_get_summarized_query_text_success(self, service, mock_loader):
         """get_summarized_query_text combines fragments and template."""
-        mock_loader.get_fragment.side_effect = lambda cat, key: f"[{key}]"
-        mock_loader.get_query_template.return_value = "SUMMARIZECOLUMNS({columns} {measures})"
+        mock_loader.get_fragment.side_effect = lambda cat, key: DataAnalysisExpressionsFragment(f"[{key}]", cat, key)
+        mock_loader.get_query_template.return_value = DataAnalysisExpressionsTemplate("SUMMARIZECOLUMNS({columns} {measures})", "summarizecolumns")
 
         result = service.get_summarized_query_text("Revenue", "Category")
 

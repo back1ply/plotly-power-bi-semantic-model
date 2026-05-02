@@ -16,7 +16,7 @@ skip_ui = pytest.mark.skipif(
 )
 
 @skip_ui
-@pytest.mark.parametrize("path", ["/", "/model", "/schema"])
+@pytest.mark.parametrize("path", ["/", "/model", "/schema", "/dax"])
 def test_page_loads_without_errors(page: "Page", path):
     """
     Automated safety check:

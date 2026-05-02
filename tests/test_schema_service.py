@@ -1,5 +1,6 @@
 """Tests for SchemaService."""
 
+import polars as pl
 import pytest
 from unittest.mock import MagicMock
 from domain import QueryError, ModelSchema, QueryKey
@@ -22,12 +23,12 @@ class TestSchemaService:
     def test_get_schema_success(self, service, mock_client, mock_queries):
         """get_schema parses raw records into ModelSchema dataclasses."""
         mock_queries.get_raw_query.return_value = "SCHEMA DAX"
-        mock_client.query.return_value = [
+        mock_client.query.return_value = pl.DataFrame([
             {"Table": "Sales", "Name": "Amount", "Type": "Column"},
             {"Table": "Sales", "Name": "TotalSales", "Type": "Measure"},
             {"Table": "Date", "Name": "Year", "Type": "Column"},
             {"Table": "Date", "Name": "RowNumber", "Type": "Column"}, # Should be filtered
-        ]
+        ])
 
         schema = service.get_schema()
 
@@ -42,11 +43,11 @@ class TestSchemaService:
     def test_get_schema_sorting(self, service, mock_client, mock_queries):
         """get_schema sorts tables and their internal lists."""
         mock_queries.get_raw_query.return_value = "SCHEMA DAX"
-        mock_client.query.return_value = [
+        mock_client.query.return_value = pl.DataFrame([
             {"Table": "B", "Name": "Z", "Type": "Column"},
             {"Table": "B", "Name": "A", "Type": "Column"},
             {"Table": "A", "Name": "X", "Type": "Column"},
-        ]
+        ])
 
         schema = service.get_schema()
 
@@ -62,7 +63,7 @@ class TestSchemaService:
     def test_get_relationships_success(self, service, mock_client, mock_queries):
         """get_relationships returns raw list from client."""
         expected = [{"FromTable": "A", "ToTable": "B"}]
-        mock_client.query.return_value = expected
+        mock_client.query.return_value = pl.DataFrame(expected)
 
         result = service.get_relationships()
 

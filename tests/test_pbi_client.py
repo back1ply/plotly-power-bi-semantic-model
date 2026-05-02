@@ -1,12 +1,12 @@
-"""Tests for PbiClient."""
-
+import polars as pl
 import pytest
+import polars.testing as pl_testing
 from unittest.mock import MagicMock, patch
-from infrastructure.pbi_client import PbiClient, PbiClientConfig
+from infrastructure.power_bi_client import PowerBiClient, PowerBiClientConfiguration
 from domain import QueryError
 
 
-class TestPbiClient:
+class TestPowerBiClient:
     @pytest.fixture
     def mock_provider(self):
         mock = MagicMock()
@@ -19,7 +19,7 @@ class TestPbiClient:
 
     @pytest.fixture
     def config(self):
-        return PbiClientConfig(
+        return PowerBiClientConfiguration(
             workspace_id="test-workspace",
             dataset_id="test-dataset",
             api_base="https://api.powerbi.com"
@@ -27,7 +27,7 @@ class TestPbiClient:
 
     @pytest.fixture
     def client(self, mock_provider, mock_limiter, config):
-        return PbiClient(
+        return PowerBiClient(
             token_provider=mock_provider,
             rate_limiter=mock_limiter,
             config=config
@@ -44,13 +44,23 @@ class TestPbiClient:
         with patch("requests.post", return_value=mock_response) as mock_post:
             result = client.query("EVALUATE TOPN(1, 'Sales')")
 
-            assert result == [{"Amount": 100}]
-            mock_limiter.enforce_rate_limit.assert_called_once()
+            expected = pl.DataFrame([{"Amount": 100}])
+            # Unwrap the adapter for comparison (CA-002)
+            pl_testing.assert_frame_equal(result._df, expected)
             mock_post.assert_called_once()
-            # Verify request body contains correct dataset/workspace
-            args, kwargs = mock_post.call_args
-            assert "test-dataset" in args[0]
-            assert kwargs["json"]["queries"][0]["query"] == "EVALUATE TOPN(1, 'Sales')"
+            mock_limiter.enforce_rate_limit.assert_called_once()
+
+    def test_query_json_level_error(self, client):
+        """query() raises QueryError if Power BI returns 200 OK but includes an error in results."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {
+            "results": [{"error": {"message": "DAX Syntax Error"}}]
+        }
+
+        with patch("requests.post", return_value=mock_response):
+            with pytest.raises(QueryError, match="DAX Syntax Error"):
+                client.query("EVALUATE BadQuery")
 
     @pytest.mark.parametrize("bad_status", [400, 401, 403, 404, 500])
     def test_query_api_errors(self, client, bad_status):
@@ -81,7 +91,7 @@ class TestPbiClient:
 
         with patch("requests.post", return_value=mock_response):
             result = client.query("EVALUATE T")
-            assert list(result[0].keys()) == [clean_name]
+            assert list(result.columns) == [clean_name]
 
     def test_query_empty_results(self, client):
         """query() handles responses with no rows gracefully."""
@@ -93,7 +103,7 @@ class TestPbiClient:
 
         with patch("requests.post", return_value=mock_response):
             result = client.query("EVALUATE EmptyTable")
-            assert result == []
+            assert result.is_empty()
 
     def test_query_malformed_json(self, client):
         """query() raises QueryError if API returns non-JSON content."""

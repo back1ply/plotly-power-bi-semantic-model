@@ -1,43 +1,45 @@
 """Tests for DashboardRepository."""
 
 import pytest
-import pandas as pd
+import polars as pl
+import polars.testing as pl_testing
 from unittest.mock import MagicMock
 from domain import QueryKey, ModelSchema, TableSchema, QueryError, QueryNotFoundError
 from infrastructure.repository import LiveRepository
-from infrastructure.decorators import CachingRepositoryDecorator
+from infrastructure.decorators import CachingDataDecorator, CachingSchemaDecorator
 
 
 class TestRepositoryDecorator:
     def test_get_data_cache_hit(self):
         """Decorator returns data from cache if available."""
         mock_cache = MagicMock()
-        expected_df = pd.DataFrame([{"val": 1}])
+        expected_df = pl.DataFrame([{"val": 1}])
         mock_cache.get.return_value = expected_df
         mock_inner = MagicMock()
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
-        result = repo.get_data(QueryKey.KPI_TOTALS)
+        repo = CachingDataDecorator(mock_inner, mock_cache)
+        result = repo.get_data(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
-        pd.testing.assert_frame_equal(result, expected_df)
+        pl_testing.assert_frame_equal(result, expected_df)
         mock_cache.get.assert_called_once()
-        mock_inner.refresh.assert_not_called()
+        mock_inner.fetch_fresh_data.assert_not_called()
 
     def test_get_data_cache_miss_success(self):
         """Decorator fetches from inner repository on cache miss and populates cache."""
         mock_cache = MagicMock()
         mock_cache.get.return_value = None
-        
+
         mock_inner = MagicMock()
-        expected_df = pd.DataFrame([{"val": 2}])
-        mock_inner.refresh.return_value = expected_df
+        expected_df = pl.DataFrame([{"val": 2}])
+        mock_inner.fetch_fresh_data.return_value = expected_df
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
-        result = repo.get_data(QueryKey.KPI_TOTALS)
+        repo = CachingDataDecorator(mock_inner, mock_cache)
+        result = repo.get_data(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
-        pd.testing.assert_frame_equal(result, expected_df)
+        pl_testing.assert_frame_equal(result, expected_df)
+
         mock_cache.get.assert_called_once()
-        mock_inner.refresh.assert_called_once_with(QueryKey.KPI_TOTALS, None)
+        mock_inner.fetch_fresh_data.assert_called_once_with(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS, None)
         mock_cache.set.assert_called_once()
 
     def test_get_schema_cache_hit(self):
@@ -47,7 +49,7 @@ class TestRepositoryDecorator:
         mock_cache.get.return_value = schema
         mock_inner = MagicMock()
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
+        repo = CachingSchemaDecorator(mock_inner, mock_cache)
         result = repo.get_schema()
 
         assert result == schema
@@ -63,7 +65,7 @@ class TestRepositoryDecorator:
         schema = ModelSchema(tables={"T": TableSchema(name="T", columns=["A"], measures=[])})
         mock_inner.get_schema.return_value = schema
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
+        repo = CachingSchemaDecorator(mock_inner, mock_cache)
         result = repo.get_schema()
 
         assert result == schema
@@ -80,7 +82,7 @@ class TestRepositoryDecorator:
         schema = ModelSchema(tables={"NewTable": TableSchema(name="NewTable", columns=["A"], measures=[])})
         mock_inner.get_schema.return_value = schema
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
+        repo = CachingSchemaDecorator(mock_inner, mock_cache)
         result = repo.get_schema()
 
         assert result == schema
@@ -92,14 +94,14 @@ class TestRepositoryDecorator:
     def test_get_dynamic_data_cache_hit(self):
         """Decorator returns dynamic data from cache."""
         mock_cache = MagicMock()
-        expected_df = pd.DataFrame([{"dynamic": 1}])
+        expected_df = pl.DataFrame([{"dynamic": 1}])
         mock_cache.get.return_value = expected_df
         mock_inner = MagicMock()
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
+        repo = CachingDataDecorator(mock_inner, mock_cache)
         result = repo.get_dynamic_data("template", parameters={"val": 1})
 
-        pd.testing.assert_frame_equal(result, expected_df)
+        pl_testing.assert_frame_equal(result, expected_df)
         mock_inner.get_dynamic_data.assert_not_called()
 
     def test_get_summarized_data_cache_miss(self):
@@ -107,13 +109,13 @@ class TestRepositoryDecorator:
         mock_cache = MagicMock()
         mock_cache.get.return_value = None
         mock_inner = MagicMock()
-        expected_df = pd.DataFrame([{"sum": 100}])
+        expected_df = pl.DataFrame([{"sum": 100}])
         mock_inner.get_summarized_data.return_value = expected_df
 
-        repo = CachingRepositoryDecorator(mock_inner, mock_cache)
+        repo = CachingDataDecorator(mock_inner, mock_cache)
         result = repo.get_summarized_data("Rev", "Cat")
 
-        pd.testing.assert_frame_equal(result, expected_df)
+        pl_testing.assert_frame_equal(result, expected_df)
         mock_cache.set.assert_called_once()
 
 
@@ -123,13 +125,13 @@ class TestLiveRepository:
         mock_source = MagicMock()
         mock_source.get_formatted_query.return_value = "FORMATTED DAX"
         mock_client = MagicMock()
-        mock_client.query.return_value = [{"res": 1}]
+        mock_client.query.return_value = pl.DataFrame([{"res": 1}])
         mock_schema = MagicMock()
 
         repo = LiveRepository(mock_source, mock_schema, mock_client)
         result = repo.get_dynamic_data("temp", parameters={"param": 1})
 
-        assert isinstance(result, pd.DataFrame)
+        assert isinstance(result, pl.DataFrame)
         mock_source.get_formatted_query.assert_called_once_with("temp", parameters={"param": 1})
         mock_client.query.assert_called_once_with("FORMATTED DAX")
 
@@ -138,13 +140,14 @@ class TestLiveRepository:
         mock_source = MagicMock()
         mock_source.get_summarized_query_text.return_value = "SUMMARIZE DAX"
         mock_client = MagicMock()
-        mock_client.query.return_value = [{"sum": 2}]
+        mock_client.query.return_value = pl.DataFrame([{"sum": 2}])
         mock_schema = MagicMock()
 
         repo = LiveRepository(mock_source, mock_schema, mock_client)
         result = repo.get_summarized_data("M", "D")
 
-        assert result.iloc[0]["sum"] == 2
+        # Polars indexing
+        assert result[0, "sum"] == 2
         mock_source.get_summarized_query_text.assert_called_once_with("M", "D")
 
     def test_refresh_success(self):
@@ -153,15 +156,15 @@ class TestLiveRepository:
         mock_source.get_raw_query.return_value = "EVALUATE Table"
         
         mock_client = MagicMock()
-        mock_client.query.return_value = [{"val": 3}]
+        mock_client.query.return_value = pl.DataFrame([{"val": 3}])
         mock_schema = MagicMock()
 
         repo = LiveRepository(mock_source, mock_schema, mock_client)
-        result = repo.refresh(QueryKey.KPI_TOTALS)
+        result = repo.fetch_fresh_data(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
-        expected_df = pd.DataFrame([{"val": 3}])
-        pd.testing.assert_frame_equal(result, expected_df)
-        mock_source.get_raw_query.assert_called_once_with(QueryKey.KPI_TOTALS)
+        expected_df = pl.DataFrame([{"val": 3}])
+        pl_testing.assert_frame_equal(result, expected_df)
+        mock_source.get_raw_query.assert_called_once_with(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
         mock_client.query.assert_called_once_with("EVALUATE Table")
 
     def test_get_schema_success(self):
@@ -211,7 +214,7 @@ class TestLiveRepository:
         repo = LiveRepository(mock_source, mock_schema, mock_client)
         
         with pytest.raises(QueryError, match="Failed to execute query"):
-            repo.refresh(QueryKey.KPI_TOTALS)
+            repo.fetch_fresh_data(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
     def test_get_raw_query_success(self):
         """Live repository returns query string from source."""
@@ -221,10 +224,10 @@ class TestLiveRepository:
         mock_schema = MagicMock()
 
         repo = LiveRepository(mock_source, mock_schema, mock_client)
-        result = repo.get_raw_query(QueryKey.SALES_BY_DATE)
+        result = repo.get_raw_query(QueryKey.TREND_DATA)
 
         assert result == "SELECT * FROM Sales"
-        mock_source.get_raw_query.assert_called_once_with(QueryKey.SALES_BY_DATE)
+        mock_source.get_raw_query.assert_called_once_with(QueryKey.TREND_DATA)
 
     def test_get_raw_query_not_found_raises_query_not_found_error(self):
         """Live repository raises QueryNotFoundError if source doesn't have the key."""
@@ -236,4 +239,4 @@ class TestLiveRepository:
         repo = LiveRepository(mock_source, mock_schema, mock_client)
         
         with pytest.raises(QueryNotFoundError, match="Query not found for key"):
-            repo.get_raw_query(QueryKey.SALES_BY_DATE)
+            repo.get_raw_query(QueryKey.TREND_DATA)

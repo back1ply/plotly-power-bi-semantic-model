@@ -1,7 +1,7 @@
 """Tests for safe_callback decorator in components/base.py."""
 
 import pytest
-from presentation.callbacks import safe_callback
+from presentation.helpers import safe_callback
 
 
 class TestSafeCallback:

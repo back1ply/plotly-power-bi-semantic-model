@@ -13,12 +13,23 @@ from typing import Literal
 class QueryKey(StrEnum):
     """Enumeration of standard dashboard query keys."""
 
-    SALES_BY_DATE = "sales_by_date"
-    SALES_BY_CATEGORY = "sales_by_category"
-    SALES_BY_TERRITORY = "sales_by_territory"
-    TOP_N_PRODUCTS = "top_n_products"
-    KPI_TOTALS = "kpi_totals"
-    MODEL_SCHEMA = "model_schema"
+    TREND_DATA = "sales_trend_data"
+    CATEGORY_DATA = "category_sales_data"
+    CATEGORY_TREND_DATA = "category_trend_data"
+    TERRITORY_DATA = "territory_sales_data"
+    TERRITORY_PROFITABILITY_DATA = "territory_profitability_data"
+    TOP_N_DATA = "top_products_data"
+    PROFITABILITY_DATA = "profitability_data"
+    RESELLER_LEADERBOARD_DATA = "reseller_leaderboard_data"
+    KEY_PERFORMANCE_INDICATOR_TOTALS = "key_performance_indicator_totals"
+    MODEL_SCHEMA = "semantic_model_schema"
+    MODEL_RELATIONSHIPS = "semantic_model_relationships"
+
+
+class CacheKey(StrEnum):
+    """Enumeration of standard cache keys. (OO-002)"""
+
+    SCHEMA_METADATA = "schema_metadata"
     MODEL_RELATIONSHIPS = "model_relationships"
 
 
@@ -58,14 +69,15 @@ ThemeColor = Literal[
 
 
 @dataclass(frozen=True)
-class KpiConfig:
-    """Configuration for a KPI card."""
+class KeyPerformanceIndicatorConfig:
+    """Configuration for a Key Performance Indicator card."""
 
     label: str
     column: str
     formatter: Callable[[float | int], str]
     icon: str = ""
     color: ThemeColor = "blue"
+    delta_column: str = ""
 
 
 @dataclass(frozen=True)
@@ -98,6 +110,32 @@ class TableSchema:
     name: str
     columns: list[str]
     measures: list[str]
+
+
+@dataclass(frozen=True)
+class EmbedConfig:
+    """Configuration for Power BI report embedding. (API-002)"""
+
+    report_id: str
+    embed_url: str
+    access_token: str
+
+
+@dataclass(frozen=True)
+class DataAnalysisExpressionsFragment:
+    """Represents a Data Analysis Expressions code fragment (e.g., a measure or dimension expression). (OO-004)"""
+
+    content: str
+    category: FragmentCategory
+    key: str
+
+
+@dataclass(frozen=True)
+class DataAnalysisExpressionsTemplate:
+    """Represents a formattable Data Analysis Expressions query template. (OO-004)"""
+
+    content: str
+    key: str
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,7 @@
 
 import pytest
 import vcr
-from infrastructure.pbi_client import PbiClient, PbiClientConfig
+from infrastructure.power_bi_client import PowerBiClient, PowerBiClientConfiguration
 from domain import RateLimiterPort
 
 # Configure VCR to scrub sensitive headers/tokens before writing to cassette
@@ -28,13 +28,13 @@ class DummyRateLimiter(RateLimiterPort):
 
 @pytest.fixture
 def pbi_client():
-    """Return a PbiClient configured with dummy credentials for VCR."""
-    config = PbiClientConfig(
+    """Return a PowerBiClient configured with dummy credentials for VCR."""
+    config = PowerBiClientConfiguration(
         workspace_id="test_workspace",
         dataset_id="test_dataset",
         api_base="https://api.powerbi.com/v1.0/myorg"
     )
-    return PbiClient(
+    return PowerBiClient(
         token_provider=DummyTokenProvider(),
         rate_limiter=DummyRateLimiter(),
         config=config

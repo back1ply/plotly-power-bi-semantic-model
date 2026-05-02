@@ -6,9 +6,10 @@ Provides a data abstraction layer for the dashboard, decoupling UI from caching 
 import logging
 from typing import Any
 
-import pandas as pd
-
-from domain import DaxSourcePort
+from domain import DataAnalysisExpressionsFragment
+from domain import DataAnalysisExpressionsSourcePort
+from domain import DataAnalysisExpressionsTemplate
+from domain import DataFrame
 from domain import FragmentCategory
 from domain import ModelRelationship
 from domain import ModelSchema
@@ -27,7 +28,7 @@ class LiveRepository(RepositoryPort):
 
     def __init__(
         self,
-        query_service: DaxSourcePort,
+        query_service: DataAnalysisExpressionsSourcePort,
         schema_service: SchemaPort,
         query_client: QueryClientPort,
     ) -> None:
@@ -43,28 +44,28 @@ class LiveRepository(RepositoryPort):
         self._client = query_client
 
     def get_raw_query(self, key: QueryKey) -> str:
-        """Delegate to DaxSourcePort."""
+        """Delegate to DataAnalysisExpressionsSourcePort."""
         return self._queries.get_raw_query(key)
 
-    def get_query_template(self, key: str) -> str:
-        """Delegate to DaxSourcePort."""
+    def get_query_template(self, key: str) -> DataAnalysisExpressionsTemplate:
+        """Delegate to DataAnalysisExpressionsSourcePort. (OO-004)"""
         return self._queries.get_query_template(key)
 
-    def get_fragment(self, category: FragmentCategory, key: str) -> str:
-        """Delegate to DaxSourcePort."""
+    def get_fragment(self, category: FragmentCategory, key: str) -> DataAnalysisExpressionsFragment:
+        """Delegate to DataAnalysisExpressionsSourcePort. (OO-004)"""
         return self._queries.get_fragment(category, key)
 
     def get_formatted_query(self, key: str, parameters: dict[str, Any] | None = None) -> str:
-        """Delegate to DaxSourcePort."""
+        """Delegate to DataAnalysisExpressionsSourcePort. (API-001)"""
         return self._queries.get_formatted_query(key, parameters=parameters)
 
     def get_summarized_query_text(self, measure_key: str, dimension_key: str) -> str:
-        """Delegate to DaxSourcePort."""
+        """Delegate to DataAnalysisExpressionsSourcePort. (API-001)"""
         return self._queries.get_summarized_query_text(measure_key, dimension_key)
 
-    def query(self, dax: str) -> list[dict[str, Any]]:
+    def query(self, dax_query: str) -> DataFrame:
         """Delegate to QueryClientPort. (CA-002)"""
-        return self._client.query(dax)
+        return self._client.query(dax_query)
 
     def get_schema(self) -> ModelSchema:
         """Delegate to SchemaPort."""
@@ -74,43 +75,42 @@ class LiveRepository(RepositoryPort):
         """Delegate to SchemaPort."""
         return self._schema.get_relationships()
 
-    def get_data(self, key: QueryKey, limit: int | None = None) -> pd.DataFrame:
+    def get_data(self, key: QueryKey, limit: int | None = None) -> DataFrame:
         """Get data directly from live repository."""
-        return self.refresh(key, limit)
+        return self.fetch_fresh_data(key, limit)
 
     def _execute_query_with_error_handling(
-        self, dax: str, operation_name: str, limit: int | None = None
-    ) -> pd.DataFrame:
+        self, dax_query: str, operation_name: str, limit: int | None = None
+    ) -> DataFrame:
         try:
-            data = self._client.query(dax)
-            df = pd.DataFrame(data)
-            return df.head(limit) if limit else df
+            data_frame = self._client.query(dax_query)
+            return data_frame.head(limit) if limit else data_frame
         except QueryNotFoundError:
             raise
-        except Exception as exc:
+        except Exception as exception:
             logger.exception("LiveRepository.%s: failed", operation_name)
-            raise QueryError(f"Failed to execute query for {operation_name}") from exc
+            raise QueryError(f"Failed to execute query for {operation_name}") from exception
 
     def get_dynamic_data(
         self,
         key: str,
         parameters: dict[str, Any] | None = None,
         limit: int | None = None,
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """Fetch data using a dynamic query template and parameters."""
-        dax = self._queries.get_formatted_query(key, parameters=parameters)
-        return self._execute_query_with_error_handling(dax, f"get_dynamic_data({key})", limit)
+        dax_query = self._queries.get_formatted_query(key, parameters=parameters)
+        return self._execute_query_with_error_handling(dax_query, f"get_dynamic_data({key})", limit)
 
     def get_summarized_data(
         self, measure_key: str, dimension_key: str, limit: int | None = None
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """Fetch summarized data for a specific measure and dimension."""
-        dax = self._queries.get_summarized_query_text(measure_key, dimension_key)
+        dax_query = self._queries.get_summarized_query_text(measure_key, dimension_key)
         return self._execute_query_with_error_handling(
-            dax, f"get_summarized_data({measure_key} by {dimension_key})", limit
+            dax_query, f"get_summarized_data({measure_key} by {dimension_key})", limit
         )
 
-    def refresh(self, key: QueryKey, limit: int | None = None) -> pd.DataFrame:
+    def fetch_fresh_data(self, key: QueryKey, limit: int | None = None) -> DataFrame:
         """Fetch fresh data from live source."""
-        dax = self._queries.get_raw_query(key)
-        return self._execute_query_with_error_handling(dax, f"refresh({key})", limit)
+        dax_query = self._queries.get_raw_query(key)
+        return self._execute_query_with_error_handling(dax_query, f"fetch_fresh_data({key})", limit)

@@ -41,29 +41,29 @@ def _serialize_schema(schema) -> dict:
     }
 
 
-def _build_schema_panel(schema, search_term: str = "") -> dmc.ScrollArea:
+def _build_schema_panel(schema, search_term: str = "") -> dmc.ScrollArea | dmc.Center:
     """Build the schema field tree panel from a loaded schema object."""
     items = []
     search_lower = search_term.lower()
 
     for table_name, table in schema.tables.items():
         # Filter logic
-        filtered_cols = [
-            c
-            for c in table.columns
-            if search_lower in c.lower() or search_lower in table_name.lower()
+        filtered_columns = [
+            column
+            for column in table.columns
+            if search_lower in column.lower() or search_lower in table_name.lower()
         ]
         filtered_measures = [
-            m
-            for m in table.measures
-            if search_lower in m.lower() or search_lower in table_name.lower()
+            measure
+            for measure in table.measures
+            if search_lower in measure.lower() or search_lower in table_name.lower()
         ]
 
-        if search_term and not filtered_cols and not filtered_measures:
+        if search_term and not filtered_columns and not filtered_measures:
             continue
 
         content = []
-        if filtered_cols:
+        if filtered_columns:
             content.append(dmc.Text("Columns", size="xs", c="dimmed", mb=4))
             content.append(
                 dmc.Flex(
@@ -72,15 +72,15 @@ def _build_schema_panel(schema, search_term: str = "") -> dmc.ScrollArea:
                     mb="xs",
                     children=[
                         html.Span(
-                            dmc.Badge(col, size="xs", variant="outline"),
+                            dmc.Badge(column, size="xs", variant="outline"),
                             id={
                                 "type": "schema-insert",
-                                "expr": f"'{table_name}'[{col}]",
+                                "expr": f"'{table_name}'[{column}]",
                             },
                             n_clicks=0,
                             style={"cursor": "pointer"},
                         )
-                        for col in filtered_cols
+                        for column in filtered_columns
                     ],
                 )
             )
@@ -93,12 +93,12 @@ def _build_schema_panel(schema, search_term: str = "") -> dmc.ScrollArea:
                     gap=4,
                     children=[
                         html.Span(
-                            dmc.Badge(m, size="xs", variant="light", color="teal"),
-                            id={"type": "schema-insert", "expr": f"[{m}]"},
+                            dmc.Badge(measure, size="xs", variant="light", color="teal"),
+                            id={"type": "schema-insert", "expr": f"[{measure}]"},
                             n_clicks=0,
                             style={"cursor": "pointer"},
                         )
-                        for m in filtered_measures
+                        for measure in filtered_measures
                     ],
                 )
             )
@@ -137,17 +137,17 @@ def _build_schema_panel(schema, search_term: str = "") -> dmc.ScrollArea:
 
 def layout():
     """Return the DAX Query page layout."""
-    repo = get_repository(SchemaPort)
-    return serve_layout(repo)
+    repository = get_repository(SchemaPort)
+    return serve_layout(repository)
 
 
-def serve_layout(repo: SchemaPort):
+def serve_layout(repository: SchemaPort):
     """Build and return the full DAX Query page layout with live schema data."""
     try:
-        schema = repo.get_schema()
-    except QueryError as exc:
+        schema = repository.get_schema()
+    except QueryError as exception:
         return dmc.Alert(
-            f"Failed to load schema: {exc}",
+            f"Failed to load schema: {exception}",
             title="Schema Error",
             color="red",
             variant="filled",
@@ -216,7 +216,6 @@ def serve_layout(repo: SchemaPort):
                             ],
                         ),
                     ),
-                    # Right: Editor and Results
                     dmc.GridCol(
                         span=9,
                         children=dmc.Stack(
@@ -302,6 +301,19 @@ def serve_layout(repo: SchemaPort):
                                         ),
                                     ],
                                 ),
+                                # Diagnostic JS to expose editor to E2E
+                                html.Script(
+                                    """
+                                    const observer = new MutationObserver(() => {
+                                        const editor = document.querySelector('.ace_editor');
+                                        if (editor && editor.env && editor.env.editor) {
+                                            window._daxAceEditor = editor.env.editor;
+                                            observer.disconnect();
+                                        }
+                                    });
+                                    observer.observe(document.body, { childList: true, subtree: true });
+                                    """
+                                ),
                                 # Results
                                 dmc.Paper(
                                     p=0,
@@ -332,8 +344,15 @@ def serve_layout(repo: SchemaPort):
                                                 ),
                                             ],
                                         ),
-                                        dcc.Loading(
-                                            type="circle",
+                                        html.Div(
+                                            style={
+                                                "flex": 1,
+                                                "minHeight": "500px",
+                                                "height": "500px",
+                                                "display": "flex",
+                                                "flexDirection": "column",
+                                                "border": "1px solid var(--mantine-color-dark-4)",
+                                            },
                                             children=dag.AgGrid(
                                                 id="dax-query-results",
                                                 rowData=[],
@@ -343,16 +362,19 @@ def serve_layout(repo: SchemaPort):
                                                     "sortable": True,
                                                     "filter": True,
                                                     "minWidth": 120,
+                                                    "flex": 1,
                                                 },
                                                 dashGridOptions={
                                                     "domLayout": "normal",
                                                     "pagination": True,
                                                     "paginationPageSize": 100,
+                                                    "suppressCellFocus": True,
+                                                    "animateRows": True,
                                                 },
+                                                columnSize="responsiveSizeToFit",
                                                 style={"height": "100%", "width": "100%"},
-                                                className="ag-theme-alpine-dark",
+                                                className="ag-theme-quartz-dark",
                                             ),
-                                            style={"height": "100%"},
                                         ),
                                     ],
                                 ),

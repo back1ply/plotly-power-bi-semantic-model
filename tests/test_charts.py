@@ -1,16 +1,19 @@
 """Tests for Chart and Visualization Builders."""
 
-import pandas as pd
+import polars as pl
 import plotly.graph_objects as go
 import dash_mantine_components as dmc
 import dash_ag_grid as dag
 import pytest
-from presentation.charts import (
-    build_sales_kpi_cards,
+from domain import DataFrame
+from presentation.builders.components import (
+    build_sales_key_performance_indicator_cards,
+    build_top_products_table
+)
+from presentation.builders.figures import (
     build_sales_trend_chart,
     build_category_sales_chart,
     build_territory_sales_chart,
-    build_top_products_table
 )
 from presentation.helpers import create_empty_figure
 
@@ -29,28 +32,36 @@ class TestEmptyFigure:
 
 
 class TestMakeKpiCards:
+    def _get_kpi_value_text(self, card: dmc.Paper) -> str:
+        """Navigate card structure: Paper.children[1] = Group(value_Text, *delta)."""
+        paper_children = card.children
+        assert isinstance(paper_children, list)
+        value_group = paper_children[1]
+        assert isinstance(value_group, dmc.Group)
+        group_children = value_group.children
+        assert isinstance(group_children, list)
+        value_text = group_children[0]
+        assert isinstance(value_text, dmc.Text)
+        return str(value_text.children)
+
     def test_empty_data_returns_zeroed_cards(self, kpi_config):
-        """build_sales_kpi_cards handles empty DataFrame by zeroing out values."""
-        cards = build_sales_kpi_cards(pd.DataFrame(), kpi_config)
+        """build_sales_key_performance_indicator_cards handles empty DataFrame by zeroing out values."""
+        cards = build_sales_key_performance_indicator_cards(pl.DataFrame(), kpi_config)
         assert len(cards) == 4
-        # Verify first card (Revenue) shows $0
-        revenue_title = cards[0].children[1]
-        assert "$0" in revenue_title.children
+        assert "$0" in self._get_kpi_value_text(cards[0])
 
     def test_kpi_formatting_logic(self, sample_kpi_df, kpi_config):
         """Verify currency and integer formatting in KPI cards."""
-        cards = build_sales_kpi_cards(sample_kpi_df, kpi_config)
-        
-        # Revenue: $1,250,000
-        assert "$1,250,000" in cards[0].children[1].children
-        # Orders: 1,450 (integer, no $)
-        assert "1,450" in cards[2].children[1].children
-        assert "$" not in cards[2].children[1].children
+        cards = build_sales_key_performance_indicator_cards(sample_kpi_df, kpi_config)
+        assert "$1,250,000" in self._get_kpi_value_text(cards[0])
+        orders_value = self._get_kpi_value_text(cards[2])
+        assert "1,450" in orders_value
+        assert "$" not in orders_value
 
 
 class TestMakeTrendChart:
     def test_empty_data_returns_empty_figure(self):
-        fig = build_sales_trend_chart(pd.DataFrame())
+        fig = build_sales_trend_chart(pl.DataFrame())
         assert len(fig.data) == 0
 
     def test_trend_chart_structure(self, sample_sales_df):
@@ -64,7 +75,7 @@ class TestMakeTrendChart:
         
         # Verify categorical axis order (Fiscal year starting July in sample)
         assert fig.layout.xaxis.type == "category"
-        # July is Fiscal Month 1, January is 7. So July MUST come first in overlapping sort.
+        # ISO strings "2022-07-01" -> "Jul", "2023-01-01" -> "Jan"
         assert list(fig.layout.xaxis.categoryarray) == ["Jul", "Jan"]
 
 
@@ -79,7 +90,7 @@ class TestMakeCategoryChart:
         assert list(fig.data[0].x) == [200000, 250000, 800000]
 
     def test_category_chart_empty(self):
-        fig = build_category_sales_chart(pd.DataFrame())
+        fig = build_category_sales_chart(pl.DataFrame())
         assert len(fig.data) == 0
 
 
@@ -99,6 +110,8 @@ class TestMakeProductTable:
         assert isinstance(grid, dag.AgGrid)
         assert len(grid.rowData) == 3
         
-        # Check for currency formatters
-        sales_col = next(c for c in grid.columnDefs if c["field"] == "SalesAmount")
-        assert "d3.format('$,.0f')" in sales_col["valueFormatter"]["function"]
+        # Revenue now uses inline bar cellRenderer instead of valueFormatter
+        sales_col = next(c for c in grid.columnDefs if c["field"] == "Revenue")
+        assert "cellRenderer" in sales_col
+        assert "max" in sales_col["cellRendererParams"]
+        assert sales_col["cellRendererParams"]["max"] > 0

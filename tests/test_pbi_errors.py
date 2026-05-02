@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from domain import AuthenticationError, QueryError, RateLimitError
 from infrastructure.auth import MsalTokenProvider
 from infrastructure.rate_limiting import SlidingWindowRateLimiter
-from infrastructure.pbi_client import PbiClient, PbiClientConfig
+from infrastructure.power_bi_client import PowerBiClient, PowerBiClientConfiguration
 
 
 class TestMsalTokenProviderErrors:
@@ -49,14 +49,14 @@ class TestRateLimiterErrors:
             limiter.enforce_rate_limit()
 
 
-class TestPbiClientErrors:
+class TestPowerBiClientErrors:
     @patch("requests.post")
     def test_execute_query_http_failure_raises_query_error(self, mock_post):
         mock_tp = MagicMock()
         mock_tp.get_token.return_value = "token"
         mock_rl = MagicMock()
-        config = PbiClientConfig("w", "d", api_base="https://test.api")
-        client = PbiClient(mock_tp, mock_rl, config)
+        config = PowerBiClientConfiguration("w", "d", api_base="https://test.api")
+        client = PowerBiClient(mock_tp, mock_rl, config)
         
         mock_resp = MagicMock()
         mock_resp.ok = False
@@ -72,27 +72,26 @@ class TestPbiClientErrors:
         mock_tp = MagicMock()
         mock_tp.get_token.return_value = "token"
         mock_rl = MagicMock()
-        config = PbiClientConfig("w", "d", api_base="https://test.api")
-        client = PbiClient(mock_tp, mock_rl, config)
+        config = PowerBiClientConfiguration("w", "d", api_base="https://test.api")
+        client = PowerBiClient(mock_tp, mock_rl, config)
         
         mock_resp = MagicMock()
         mock_resp.ok = True
         mock_resp.json.return_value = {"results": []} # No results
         mock_post.return_value = mock_resp
-        
-        assert client._execute_query("DAX") == []
 
+        assert client._execute_query("DAX").is_empty()
     @patch("requests.post")
     def test_execute_query_no_tables_returns_list(self, mock_post):
         mock_tp = MagicMock()
         mock_tp.get_token.return_value = "token"
         mock_rl = MagicMock()
-        config = PbiClientConfig("w", "d", api_base="https://test.api")
-        client = PbiClient(mock_tp, mock_rl, config)
+        config = PowerBiClientConfiguration("w", "d", api_base="https://test.api")
+        client = PowerBiClient(mock_tp, mock_rl, config)
         
         mock_resp = MagicMock()
         mock_resp.ok = True
         mock_resp.json.return_value = {"results": [{"tables": []}]}
         mock_post.return_value = mock_resp
         
-        assert client._execute_query("DAX") == []
+        assert client._execute_query("DAX").is_empty()

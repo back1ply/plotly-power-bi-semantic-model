@@ -73,9 +73,7 @@
   window._daxEditorInsert = function (expr) {
     var wrapperEl = document.getElementById("dax-editor");
     if (!wrapperEl) return;
-    var inner = wrapperEl.querySelector(".ace_editor");
-    if (!inner) return;
-    var aceInstance = ace.edit(inner);
+    var aceInstance = ace.edit(wrapperEl);
     var cursor = aceInstance.getCursorPosition();
     var line = aceInstance.session.getLine(cursor.row);
     var before = line.substring(0, cursor.column);
@@ -107,12 +105,8 @@
       setTimeout(function () { applyCompletions(attempt + 1); }, 150);
       return;
     }
-    var inner = wrapperEl.querySelector(".ace_editor");
-    if (!inner) {
-      setTimeout(function () { applyCompletions(attempt + 1); }, 150);
-      return;
-    }
-    var aceInstance = ace.edit(inner);
+    // dash-ace renders the editor into the wrapperEl directly
+    var aceInstance = ace.edit(wrapperEl);
     window._daxAceEditor = aceInstance;
     registerCompleter(aceInstance);
   }

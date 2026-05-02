@@ -48,9 +48,9 @@ class MsalTokenProvider(TokenProviderPort):
                 client_credential=self._client_secret,
                 authority=f"https://login.microsoftonline.com/{self._tenant_id}",
             )
-        except Exception as exc:
-            logger.error("MsalTokenProvider._initialize failed: %s", exc)
-            raise AuthenticationError(f"Failed to initialize MSAL: {exc}") from exc
+        except Exception as exception:
+            logger.error("MsalTokenProvider._initialize failed: %s", exception)
+            raise AuthenticationError(f"Failed to initialize MSAL: {exception}") from exception
 
     def get_token(self) -> str:
         """Acquire and return an access token, initializing MSAL if needed."""
@@ -70,8 +70,8 @@ class MsalTokenProvider(TokenProviderPort):
                     f"Could not acquire token for tenant {self._tenant_id}: {error_desc}"
                 )
             return token
-        except Exception as exc:
-            if isinstance(exc, AuthenticationError):
+        except Exception as exception:
+            if isinstance(exception, AuthenticationError):
                 raise
-            logger.error("MSAL Auth Provider retrieval failed: %s", exc)
-            raise AuthenticationError(f"Failed to acquire token: {exc}") from exc
+            logger.error("MSAL Auth Provider retrieval failed: %s", exception)
+            raise AuthenticationError(f"Failed to acquire token: {exception}") from exception

@@ -60,8 +60,21 @@ def with_retry(
 
 
 _MAX_DAX_LENGTH = 10_000
-_VALID_DAX_START = re.compile(r"^\s*(DEFINE|EVALUATE)\b", re.IGNORECASE)
+_INVISIBLE_CHARS = re.compile(r"[\u200b\u200c\u200d\ufeff]")
+# Allows comments (-- , // , /* */), whitespace, and invisible characters (ZWSP, BOM) before DEFINE or EVALUATE
+_VALID_DAX_START = re.compile(
+    r"^[\s\u200b\u200c\u200d\ufeff]*(?:(?:--.*|//.*|/\*[\s\S]*?\*/)\s*)*(DEFINE|EVALUATE)\b", re.IGNORECASE
+)
 _BLOCKED_DMV = re.compile(r"\bINFO\.", re.IGNORECASE)
+
+
+def clean_dax_query(dax: str) -> str:
+    """Remove invisible characters and strip whitespace from a DAX query. (OO-004)"""
+    if not dax:
+        return ""
+    # Remove invisible characters that can break the Power BI parser
+    dax = _INVISIBLE_CHARS.sub("", dax)
+    return dax.strip()
 
 
 def validate_dax_query(dax: str) -> str | None:
@@ -76,13 +89,14 @@ def validate_dax_query(dax: str) -> str | None:
     Returns:
         Error message string if invalid, None if the query passes all checks.
     """
-    stripped = dax.strip()
-    if not stripped:
+    cleaned = clean_dax_query(dax)
+
+    if not cleaned:
         return "Query is empty."
-    if len(stripped) > _MAX_DAX_LENGTH:
+    if len(cleaned) > _MAX_DAX_LENGTH:
         return f"Query exceeds maximum length of {_MAX_DAX_LENGTH:,} characters."
-    if not _VALID_DAX_START.match(stripped):
+    if not _VALID_DAX_START.match(cleaned):
         return "Query must begin with EVALUATE or DEFINE."
-    if _BLOCKED_DMV.search(stripped):
+    if _BLOCKED_DMV.search(cleaned):
         return "INFO.* DMV functions are not permitted."
     return None

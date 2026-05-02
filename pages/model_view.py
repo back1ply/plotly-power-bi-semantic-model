@@ -9,14 +9,17 @@ import dash_mantine_components as dmc
 from dash import html
 from dash_iconify import DashIconify
 
+from domain import ClassifierPort
 from domain import ColumnType
+from domain import ModelRelationship
 from domain import ModelSchema
 from domain import QueryError
 from domain import SchemaPort
-from domain.services import ColumnClassifier
+from domain import TemplateLoaderPort
 from presentation.dependency import get_repository
-from presentation.helpers import _inject_model_data
-from presentation.helpers import _load_html_template
+from presentation.dependency import get_service
+from presentation.helpers import inject_model_data
+from presentation.helpers import load_html_template
 
 MAX_COLUMNS_DISPLAY = 12
 
@@ -37,79 +40,87 @@ dash.register_page(
 )
 
 
-def _build_model_data(schema: ModelSchema, relationships: list) -> dict:
+def _build_model_data(
+    schema: ModelSchema, relationships: list[ModelRelationship], classifier: ClassifierPort
+) -> dict:
     """Build model data structure for the JavaScript visualization."""
     tables = []
 
     for table_name, table in schema.tables.items():
-        raw_cols = table.columns
+        raw_columns = table.columns
         measures = table.measures
 
         columns = []
-        for col in raw_cols:
-            col_type = ColumnClassifier.detect_type(col, table_name)
-            if col_type != ColumnType.HIDDEN:
-                columns.append({"name": col, "type": col_type.value})
+        for column in raw_columns:
+            column_type = classifier.detect_type(column, table_name)
+            if column_type != ColumnType.HIDDEN:
+                columns.append({"name": column, "type": column_type.value})
 
         for measure in measures:
             columns.append({"name": measure, "type": ColumnType.MEASURE.value})
 
         # Final list of visible items
-        visible_cols = columns[:MAX_COLUMNS_DISPLAY]
+        visible_columns = columns[:MAX_COLUMNS_DISPLAY]
         extra_count = len(columns) - MAX_COLUMNS_DISPLAY
 
         tables.append(
             {
                 "id": table_name,
                 "name": table_name,
-                "columns": visible_cols,
+                "columns": visible_columns,
                 "extraColumns": max(0, extra_count),
             }
         )
 
-    rels = []
-    for rel in relationships:
-        from_card = rel.from_cardinality
-        to_card = rel.to_cardinality
+    relationships_list = []
+    for relationship in relationships:
+        from_cardinality = relationship.from_cardinality
+        to_cardinality = relationship.to_cardinality
 
-        s_label = (
+        source_label = (
             "1"
-            if from_card and "One" in from_card
-            else ("*" if from_card and "Many" in from_card else "?")
+            if from_cardinality and "One" in from_cardinality
+            else ("*" if from_cardinality and "Many" in from_cardinality else "?")
         )
-        t_label = (
-            "1" if to_card and "One" in to_card else ("*" if to_card and "Many" in to_card else "?")
+        target_label = (
+            "1"
+            if to_cardinality and "One" in to_cardinality
+            else ("*" if to_cardinality and "Many" in to_cardinality else "?")
         )
 
-        rels.append(
+        relationships_list.append(
             {
-                "from": rel.from_table,
-                "fromColumn": rel.from_column,
-                "to": rel.to_table,
-                "toColumn": rel.to_column,
-                "cardinality": f"{s_label}:{t_label}",
-                "crossFilteringBehavior": rel.cross_filtering_behavior,
-                "active": rel.is_active,
+                "from": relationship.from_table,
+                "fromColumn": relationship.from_column,
+                "to": relationship.to_table,
+                "toColumn": relationship.to_column,
+                "cardinality": f"{source_label}:{target_label}",
+                "crossFilteringBehavior": relationship.cross_filtering_behavior,
+                "active": relationship.is_active,
             }
         )
 
-    return {"tables": tables, "relationships": rels}
+    return {"tables": tables, "relationships": relationships_list}
 
 
 def layout() -> dmc.Stack | dmc.Alert:
     """Create the model view layout."""
-    repo = get_repository(SchemaPort)
-    return serve_layout(repo)
+    repository = get_repository(SchemaPort)
+    classifier = get_service(ClassifierPort)
+    loader = get_service(TemplateLoaderPort)
+    return serve_layout(repository, classifier, loader)
 
 
-def serve_layout(repo: SchemaPort) -> dmc.Stack | dmc.Alert:
+def serve_layout(
+    repository: SchemaPort, classifier: ClassifierPort, loader: TemplateLoaderPort
+) -> dmc.Stack | dmc.Alert:
     """Logic to build the layout, separated for testability. (CA-003)"""
     try:
-        schema = repo.get_schema()
-        relationships = repo.get_relationships()
-    except QueryError as exc:
+        schema = repository.get_schema()
+        relationships = repository.get_relationships()
+    except QueryError as exception:
         return dmc.Alert(
-            f"Failed to load model diagram: {exc}",
+            f"Failed to load model diagram: {exception}",
             title="Diagram Fetch Error",
             color="red",
             variant="filled",
@@ -117,9 +128,9 @@ def serve_layout(repo: SchemaPort) -> dmc.Stack | dmc.Alert:
             mt="xl",
         )
 
-    model_data = _build_model_data(schema, relationships)
-    html_template = _load_html_template()
-    html_with_data = _inject_model_data(html_template, model_data)
+    model_data = _build_model_data(schema, relationships, classifier)
+    html_template = load_html_template(loader)
+    html_with_data = inject_model_data(html_template, model_data)
 
     return dmc.Stack(
         gap="md",

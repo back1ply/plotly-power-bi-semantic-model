@@ -18,13 +18,13 @@ from dash import html
 
 from components.base import build_dax_inspector_button
 from domain import DataPort
-from domain import KpiConfig
+from domain import KeyPerformanceIndicatorConfig
 from domain import QueryError
 from domain import QueryKey
-from presentation.charts import build_sales_kpi_cards
-from presentation.charts import build_sales_trend_chart
-from presentation.charts import build_territory_sales_chart
-from presentation.charts import build_top_products_table
+from presentation.builders.components import build_sales_key_performance_indicator_cards
+from presentation.builders.components import build_top_products_table
+from presentation.builders.figures import build_sales_trend_chart
+from presentation.builders.figures import build_territory_sales_chart
 from presentation.constants import DIMENSION_LABELS
 from presentation.constants import MEASURE_LABELS
 from presentation.dependency import get_repository
@@ -44,24 +44,26 @@ dash.register_page(
 # Query key constant for the dynamic chart
 CUSTOM_INSIGHTS = "custom_insights"
 
-# KPI configuration with formatters (OO-001)
-KPI_CONFIG = [
-    KpiConfig(
+# Key Performance Indicator configuration with formatters (OO-001)
+KEY_PERFORMANCE_INDICATOR_CONFIG = [
+    KeyPerformanceIndicatorConfig(
         "Revenue",
         "Revenue",
         format_currency_zero_decimal,
         icon="tabler:currency-dollar",
         color="blue",
     ),
-    KpiConfig(
+    KeyPerformanceIndicatorConfig(
         "Profit",
         "Profit",
         format_currency_zero_decimal,
         icon="tabler:trending-up",
         color="teal",
     ),
-    KpiConfig("Orders", "Orders", format_integer, icon="tabler:shopping-cart", color="orange"),
-    KpiConfig(
+    KeyPerformanceIndicatorConfig(
+        "Orders", "Orders", format_integer, icon="tabler:shopping-cart", color="orange"
+    ),
+    KeyPerformanceIndicatorConfig(
         "Avg Order Value",
         "AvgOrderValue",
         format_currency_two_decimals,
@@ -118,21 +120,21 @@ def _build_graph(figure: go.Figure, chart_id: str = "") -> dcc.Graph:
 
 def layout() -> dmc.Stack | dmc.Alert:
     """Create executive summary dashboard layout."""
-    repo = get_repository(DataPort)
-    return serve_layout(repo)
+    repository = get_repository(DataPort)
+    return serve_layout(repository)
 
 
-def serve_layout(repo: DataPort) -> dmc.Stack | dmc.Alert:
+def serve_layout(repository: DataPort) -> dmc.Stack | dmc.Alert:
     """Logic to build the layout, separated for testability. (OO-002)"""
     # Fetch data from repository
     try:
-        kpi_data = repo.get_data(QueryKey.KPI_TOTALS)
-        trend_data = repo.get_data(QueryKey.SALES_BY_DATE)
-        territory_data = repo.get_data(QueryKey.SALES_BY_TERRITORY)
-        product_data = repo.get_data(QueryKey.TOP_N_PRODUCTS)
-    except QueryError as exc:
+        kpi_data = repository.get_data(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
+        trend_data = repository.get_data(QueryKey.TREND_DATA)
+        territory_data = repository.get_data(QueryKey.TERRITORY_DATA)
+        product_data = repository.get_data(QueryKey.TOP_N_DATA)
+    except QueryError as exception:
         return dmc.Alert(
-            f"Failed to load dashboard data: {exc}",
+            f"Failed to load dashboard data: {exception}",
             title="Data Fetch Error",
             color="red",
             variant="filled",
@@ -147,11 +149,13 @@ def serve_layout(repo: DataPort) -> dmc.Stack | dmc.Alert:
             dmc.SimpleGrid(
                 cols=4,
                 spacing="md",
-                children=build_sales_kpi_cards(kpi_data, KPI_CONFIG),
+                children=build_sales_key_performance_indicator_cards(
+                    kpi_data, KEY_PERFORMANCE_INDICATOR_CONFIG
+                ),
             ),
             _build_card(
                 "Sales Trend",
-                QueryKey.SALES_BY_DATE,
+                QueryKey.TREND_DATA,
                 _build_graph(build_sales_trend_chart(trend_data), "trend-chart"),
             ),
             dmc.Grid(
@@ -214,7 +218,7 @@ def serve_layout(repo: DataPort) -> dmc.Stack | dmc.Alert:
                         span=6,
                         children=_build_card(
                             "Revenue by Territory",
-                            QueryKey.SALES_BY_TERRITORY,
+                            QueryKey.TERRITORY_DATA,
                             _build_graph(build_territory_sales_chart(territory_data)),
                         ),
                     ),
@@ -222,7 +226,7 @@ def serve_layout(repo: DataPort) -> dmc.Stack | dmc.Alert:
             ),
             _build_card(
                 "Product Performance",
-                QueryKey.TOP_N_PRODUCTS,
+                QueryKey.TOP_N_DATA,
                 build_top_products_table(product_data),
             ),
         ],

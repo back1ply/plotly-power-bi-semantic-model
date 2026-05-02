@@ -8,7 +8,7 @@ import os
 import pytest
 from infrastructure.auth import MsalTokenProvider
 from infrastructure.rate_limiting import SlidingWindowRateLimiter
-from infrastructure.pbi_client import PbiClient, PbiClientConfig
+from infrastructure.power_bi_client import PowerBiClient, PowerBiClientConfiguration
 
 # Integration tests require real credentials - they run when real credentials exist
 # but are skipped in test-only environments
@@ -32,20 +32,20 @@ skip_without_creds = pytest.mark.skipif(
 @skip_integration
 @skip_in_ci
 def test_pbi_client_can_connect():
-    """PbiClient can fetch an OAuth token."""
+    """PowerBiClient can fetch an OAuth token."""
     token_provider = MsalTokenProvider(
         tenant_id=os.getenv("TENANT_ID", ""),
         client_id=os.getenv("CLIENT_ID", ""),
         client_secret=os.getenv("CLIENT_SECRET", ""),
     )
     rate_limiter = SlidingWindowRateLimiter(max_requests=120, window_seconds=60)
-    config = PbiClientConfig(
+    config = PowerBiClientConfiguration(
         workspace_id=os.getenv("WORKSPACE_ID", ""),
         dataset_id=os.getenv("DATASET_ID", ""),
         api_base=os.getenv("PBI_API_BASE", "https://api.powerbi.com/v1.0/myorg")
     )
 
-    client = PbiClient(
+    client = PowerBiClient(
         token_provider=token_provider,
         rate_limiter=rate_limiter,
         config=config
@@ -58,20 +58,20 @@ def test_pbi_client_can_connect():
 @skip_integration
 @skip_in_ci
 def test_pbi_client_can_execute_query():
-    """PbiClient can execute a simple DAX query."""
+    """PowerBiClient can execute a simple DAX query."""
     token_provider = MsalTokenProvider(
         tenant_id=os.getenv("TENANT_ID", ""),
         client_id=os.getenv("CLIENT_ID", ""),
         client_secret=os.getenv("CLIENT_SECRET", ""),
     )
     rate_limiter = SlidingWindowRateLimiter(max_requests=120, window_seconds=60)
-    config = PbiClientConfig(
+    config = PowerBiClientConfiguration(
         workspace_id=os.getenv("WORKSPACE_ID", ""),
         dataset_id=os.getenv("DATASET_ID", ""),
         api_base=os.getenv("PBI_API_BASE", "https://api.powerbi.com/v1.0/myorg")
     )
 
-    client = PbiClient(
+    client = PowerBiClient(
         token_provider=token_provider,
         rate_limiter=rate_limiter,
         config=config
@@ -92,13 +92,13 @@ def test_startup_cache_populated():
         client_secret=os.getenv("CLIENT_SECRET", ""),
     )
     rate_limiter = SlidingWindowRateLimiter(max_requests=120, window_seconds=60)
-    config = PbiClientConfig(
+    config = PowerBiClientConfiguration(
         workspace_id=os.getenv("WORKSPACE_ID", ""),
         dataset_id=os.getenv("DATASET_ID", ""),
         api_base=os.getenv("PBI_API_BASE", "https://api.powerbi.com/v1.0/myorg")
     )
 
-    client = PbiClient(
+    client = PowerBiClient(
         token_provider=token_provider,
         rate_limiter=rate_limiter,
         config=config

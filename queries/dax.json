@@ -1,28 +1,51 @@
 {
   "startup": {
-    "sales_by_date": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Date'[Fiscal Year],\n    'Date'[Month],\n    \"SalesAmount\", SUM('Sales'[Sales Amount])\n)",
-    "sales_by_category": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Product'[Category],\n    \"SalesAmount\", SUM('Sales'[Sales Amount])\n)",
-    "sales_by_territory": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Sales Territory'[Group],\n    \"SalesAmount\", SUM('Sales'[Sales Amount])\n)",
-    "top_n_products": "EVALUATE\nTOPN(\n    10,\n    SUMMARIZECOLUMNS(\n        'Product'[Product],\n        'Product'[Category],\n        \"SalesAmount\", SUM('Sales'[Sales Amount]),\n        \"Profit\", SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost])\n    ),\n    [SalesAmount],\n    DESC\n)",
-    "kpi_totals": "EVALUATE\nROW(\n    \"Revenue\", SUM('Sales'[Sales Amount]),\n    \"Profit\", SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost]),\n    \"Orders\", DISTINCTCOUNT('Sales Order'[Sales Order]),\n    \"AvgOrderValue\", DIVIDE(SUM('Sales'[Sales Amount]), DISTINCTCOUNT('Sales Order'[Sales Order]))\n)",
-    "model_schema": "EVALUATE\nUNION(\n    SELECTCOLUMNS(\n        FILTER(\n            INFO.VIEW.COLUMNS(),\n            [Type] <> \"RowNumber\" &&\n            [DataCategory] <> \"RowNumber\" &&\n            [IsHidden] = FALSE() &&\n            NOT(CONTAINSSTRING([Name], \"RowNumber\"))\n        ),\n        \"Table\", [Table],\n        \"Name\", [Name],\n        \"Type\", \"Column\"\n    ),\n    SELECTCOLUMNS(\n        FILTER(\n            INFO.VIEW.MEASURES(),\n            [IsHidden] = FALSE()\n        ),\n        \"Table\", [Table],\n        \"Name\", [Name],\n        \"Type\", \"Measure\"\n    )\n)",
-    "model_relationships": "EVALUATE\nSELECTCOLUMNS(\n    INFO.VIEW.RELATIONSHIPS(),\n    \"FromTable\", [FromTable],\n    \"FromColumn\", [FromColumn],\n    \"ToTable\", [ToTable],\n    \"ToColumn\", [ToColumn],\n    \"FromCardinality\", [FromCardinality],\n    \"ToCardinality\", [ToCardinality],\n    \"IsActive\", [IsActive],\n    \"CrossFilteringBehavior\", [CrossFilteringBehavior]\n)"
+    "sales_trend_data": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Date'[Fiscal Year],\n    'Date'[Month],\n    \"Revenue\", [Revenue]\n)",
+    "category_sales_data": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Product'[Category],\n    \"Revenue\", [Revenue]\n)",
+    "category_trend_data": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Date'[Fiscal Year],\n    'Date'[Month],\n    'Product'[Category],\n    \"Revenue\", [Revenue],\n    \"Profit\", [Profit],\n    \"UnitsSold\", [Units Sold]\n)",
+    "territory_sales_data": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Sales Territory'[Group],\n    \"Revenue\", [Revenue]\n)",
+    "territory_profitability_data": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Sales Territory'[Group],\n    'Sales Territory'[Country],\n    \"Revenue\", [Revenue],\n    \"Profit\", [Profit],\n    \"GrossMarginPct\", [Gross Margin %],\n    \"UnitsSold\", [Units Sold]\n)",
+    "top_products_data": "EVALUATE\nTOPN(\n    10,\n    SUMMARIZECOLUMNS(\n        'Product'[Product],\n        'Product'[Category],\n        \"Revenue\", [Revenue],\n        \"Profit\", [Profit]\n    ),\n    [Revenue],\n    DESC\n)",
+    "profitability_data": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Sales Territory'[Country],\n    'Product'[Category],\n    \"GrossMarginPct\", [Gross Margin %],\n    \"Revenue\", [Revenue],\n    \"Profit\", [Profit]\n)",
+    "reseller_leaderboard_data": "EVALUATE\nTOPN(\n    20,\n    SUMMARIZECOLUMNS(\n        'Reseller'[Reseller],\n        'Sales Territory'[Country],\n        \"Revenue\", [Revenue],\n        \"Profit\", [Profit],\n        \"GrossMarginPct\", [Gross Margin %],\n        \"SalesYoYPct\", [Sales YoY %],\n        \"YOYTarget\", [YOY Target]\n    ),\n    [Revenue],\n    DESC\n)",
+    "key_performance_indicator_totals": "EVALUATE\nROW(\n    \"Revenue\", [Revenue],\n    \"Profit\", [Profit],\n    \"GrossMarginPct\", [Gross Margin %],\n    \"Orders\", [Orders],\n    \"UnitsSold\", [Units Sold],\n    \"AvgOrderValue\", [Avg Order Value],\n    \"SalesVsPY\", [Sales vs PY],\n    \"SalesYoYPct\", [Sales YoY %]\n)",
+    "semantic_model_schema": "EVALUATE\nUNION(\n    SELECTCOLUMNS(\n        FILTER(\n            INFO.VIEW.COLUMNS(),\n            [Type] <> \"RowNumber\" &&\n            [DataCategory] <> \"RowNumber\" &&\n            [IsHidden] = FALSE() &&\n            NOT(CONTAINSSTRING([Name], \"RowNumber\"))\n        ),\n        \"Table\", [Table],\n        \"Name\", [Name],\n        \"Type\", \"Column\"\n    ),\n    SELECTCOLUMNS(\n        FILTER(\n            INFO.VIEW.MEASURES(),\n            [IsHidden] = FALSE()\n        ),\n        \"Table\", [Table],\n        \"Name\", [Name],\n        \"Type\", \"Measure\"\n    )\n)",
+    "semantic_model_relationships": "EVALUATE\nSELECTCOLUMNS(\n    INFO.VIEW.RELATIONSHIPS(),\n    \"FromTable\", [FromTable],\n    \"FromColumn\", [FromColumn],\n    \"ToTable\", [ToTable],\n    \"ToColumn\", [ToColumn],\n    \"FromCardinality\", [FromCardinality],\n    \"ToCardinality\", [ToCardinality],\n    \"IsActive\", [IsActive],\n    \"CrossFilteringBehavior\", [CrossFilteringBehavior]\n)"
   },
   "dynamic": {
     "summarizecolumns": "EVALUATE\nSUMMARIZECOLUMNS(\n    {columns}\n    {measures}\n)"
   },
   "fragments": {
     "measure": {
-      "Revenue": "SUM('Sales'[Sales Amount])",
-      "Profit": "SUM('Sales'[Sales Amount]) - SUM('Sales'[Total Product Cost])",
-      "Orders": "DISTINCTCOUNT('Sales Order'[Sales Order])",
-      "Avg Order Value": "DIVIDE(SUM('Sales'[Sales Amount]), DISTINCTCOUNT('Sales Order'[Sales Order]))"
+      "Revenue": "[Revenue]",
+      "Product Cost": "[Product Cost]",
+      "Profit": "[Profit]",
+      "Gross Margin %": "[Gross Margin %]",
+      "Markup %": "[Markup %]",
+      "Units Sold": "[Units Sold]",
+      "Orders": "[Orders]",
+      "Avg Order Value": "[Avg Order Value]",
+      "Sales PY": "[Sales PY]",
+      "Sales vs PY": "[Sales vs PY]",
+      "Sales YoY %": "[Sales YoY %]",
+      "YOY Target": "[YOY Target]",
+      "YOY Sales KPI": "[YOY Sales KPI]",
+      "Profit PY": "[Profit PY]",
+      "Cost PY": "[Cost PY]",
+      "Quantity PY": "[Quantity PY]"
     },
     "dimension": {
       "Category": "'Product'[Category]",
+      "Subcategory": "'Product'[Subcategory]",
+      "Product": "'Product'[Product]",
       "Territory Group": "'Sales Territory'[Group]",
       "Country": "'Sales Territory'[Country]",
-      "Month": "'Date'[Month]"
+      "Region": "'Sales Territory'[Region]",
+      "Fiscal Year": "'Date'[Fiscal Year]",
+      "Fiscal Quarter": "'Date'[Fiscal Quarter]",
+      "Month": "'Date'[Month]",
+      "Reseller": "'Reseller'[Reseller]",
+      "Channel": "'Sales Order'[Channel]"
     }
   }
 }

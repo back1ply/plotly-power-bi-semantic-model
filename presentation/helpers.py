@@ -1,15 +1,46 @@
-"""Presentation helper functions."""
-
+import functools
 import json
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+from typing import TypedDict
 
 import plotly.graph_objects as go
 
 from presentation.theme import COLORS
 
+if False:
+    from domain import TemplateLoaderPort
+
+
+class ModelData(TypedDict):
+    tables: list[dict[str, Any]]
+    relationships: list[dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class InspectorResult:
+    is_open: bool
+    content: str
+
+
+def safe_callback[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+    _logger = logging.getLogger("callbacks")
+
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            _logger.exception("CALLBACK CRASH [%s]", func.__name__)
+            raise
+
+    return wrapper
+
 
 def create_empty_figure(message: str = "No data", height: int = 300) -> go.Figure:
-    """Create empty figure with message."""
     return go.Figure().update_layout(
         xaxis={"visible": False},
         yaxis={"visible": False},
@@ -28,14 +59,11 @@ def create_empty_figure(message: str = "No data", height: int = 300) -> go.Figur
     )
 
 
-def _load_html_template() -> str:
-    """Load the HTML template for the model diagram."""
-    template_path = Path(__file__).parent.parent / "assets" / "model_diagram.html"
-    return template_path.read_text(encoding="utf-8")
+def load_html_template(loader: "TemplateLoaderPort") -> str:
+    return loader.load_html_template("model_diagram.html")
 
 
-def _inject_model_data(html_template: str, model_data: dict) -> str:
-    """Inject model data into the HTML template."""
+def inject_model_data(html_template: str, model_data: dict) -> str:
     load_script = f"""
     <script>
         window.loadModelData({json.dumps(model_data)});
@@ -44,3 +72,27 @@ def _inject_model_data(html_template: str, model_data: dict) -> str:
     if "</body>" in html_template:
         return html_template.replace("</body>", load_script + "</body>")
     return html_template + load_script
+
+
+_AVATAR_COLORS = ["#6366F1", "#14B8A6", "#F59E0B", "#EC4899", "#0EA5E9", "#84CC16"]
+
+
+def hex_to_rgba(hex_color: str, opacity: float) -> str:
+    hex_color = hex_color.lstrip("#")
+    hex_length = len(hex_color)
+    red_green_blue = tuple(
+        int(hex_color[index : index + hex_length // 3], 16)
+        for index in range(0, hex_length, hex_length // 3)
+    )
+    return f"rgba({red_green_blue[0]}, {red_green_blue[1]}, {red_green_blue[2]}, {opacity})"
+
+
+def avatar_color(name: str) -> str:
+    return _AVATAR_COLORS[sum(ord(c) for c in name) % len(_AVATAR_COLORS)]
+
+
+def initials(name: str) -> str:
+    parts = name.split()
+    if len(parts) > 1:
+        return (parts[0][0] + parts[-1][0]).upper()
+    return name[:2].upper()

@@ -5,13 +5,12 @@ Provides orchestration for loading startup data from Power BI and caching it.
 
 import logging
 
-import pandas as pd
-
+from domain import DataFrame
+from domain import DataPort
 from domain import LoadResult
 from domain import QueryError
 from domain import QueryKey
-from domain import RepositoryPort
-from domain.utils import with_retry
+from domain import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class StartupDataLoader:
 
     def __init__(
         self,
-        repository: RepositoryPort,
+        repository: DataPort,
         preload_keys: list[QueryKey] | None = None,
     ) -> None:
         """Initialize data loader with repository. (OO-002)
@@ -41,10 +40,11 @@ class StartupDataLoader:
             base_delay=base_delay,
             exceptions=(QueryError, ValueError),
         )
-        def _load_with_retry(key: QueryKey) -> pd.DataFrame:
+        def _load_with_retry(key: QueryKey) -> DataFrame:
             """Execute a single query with retry logic."""
-            result = self._repository.refresh(key)
-            if result.empty:
+            result = self._repository.fetch_fresh_data(key)
+            # Polars uses is_empty() instead of empty
+            if result.is_empty():
                 raise ValueError(f"Empty result from Power BI for {key}")
             return result
 
