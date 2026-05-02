@@ -41,7 +41,15 @@
 
     fetch("/api/embed-config")
       .then(function (r) {
-        if (!r.ok) throw new Error("embed-config HTTP " + r.status);
+        var ct = r.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          throw new Error("embed-config: server returned non-JSON (HTTP " + r.status + "). Credentials may not be set on this deployment.");
+        }
+        if (!r.ok) {
+          return r.json().then(function (j) {
+            throw new Error(j.error || "embed-config HTTP " + r.status);
+          });
+        }
         return r.json();
       })
       .then(function (cfg) {
