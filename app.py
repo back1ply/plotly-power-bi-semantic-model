@@ -146,7 +146,13 @@ if __name__ == "__main__":
         logger.error("Non-fatal preloading failure: %s", exc)
 
     app = create_app(container=container, should_preload=False)
-    app.run(debug=config.debug, host="127.0.0.1", port=8050, dev_tools_ui=True)
+    app.run(
+        debug=config.debug,
+        host="127.0.0.1",
+        port=8050,
+        dev_tools_ui=True,
+        dev_tools_serve_dev_bundles=True,
+    )
 else:
     # Singleton instance for Gunicorn/Prod
     # side-effect-free import (preload_data defaults to False)
