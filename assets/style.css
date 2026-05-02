@@ -39,3 +39,21 @@ body {
 .focus-mode .js-plotly-plot {
     height: calc(100vh - 80px) !important;
 }
+
+/* Ensure Dash loading wrappers fill parent height */
+._dash-loading-callback {
+    height: 100%;
+    width: 100%;
+}
+
+/* Force AG Grid quartz-dark rows visible inside Mantine dark provider */
+.ag-theme-quartz-dark {
+    --ag-foreground-color: #ffffff;
+    --ag-background-color: #1a1b1e;
+    --ag-header-background-color: #25262b;
+    --ag-header-foreground-color: #c1c2c5;
+    --ag-odd-row-background-color: #1e1f24;
+    --ag-row-hover-color: #2c2e33;
+    --ag-border-color: #373a40;
+    --ag-cell-horizontal-border: none;
+}

@@ -1,37 +1,102 @@
-# Python
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
-.venv/
-env/
-venv/
-ENV/
+*.pyo
+*.pyd
 
-# Caches & Tooling
-.cache/
+# ── Virtual Environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ── Package / Build Artifacts ─────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+wheels/
+*.whl
+MANIFEST
+pip-wheel-metadata/
+share/python-wheels/
+
+# ── Secrets & Environment ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ── Test & Coverage ───────────────────────────────────────────────────────────
 .pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.bandit/
+.hypothesis/
+htmlcov/
 .coverage
+.coverage.*
+coverage.xml
+coverage.json
+*.lcov
+nosetests.xml
+test-results/
+junit.xml
+
+# ── Type Checkers & Linters ───────────────────────────────────────────────────
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+pyrightconfig.json
+.bandit/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── OS Artifacts ─────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── IDEs ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.spyproject/
+.ropeproject/
+
+# ── Logs & Temp ───────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+*.tmp
+*.temp
+
+# ── Tooling (local) ──────────────────────────────────────────────────────────
+.cache/
 .omg/
 .planning/
 .claude/
 .qlty/
+docs/plans/
 
-# Logs & Output
-logs/
-*.log
-scripts/output/
+# ── Dash / Plotly ─────────────────────────────────────────────────────────────
+# Dash writes .map files for debugging — keep out of public repo
+assets/*.map
 
-# OS & IDE
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Secrets
-.env
-
-# Local dev overrides
-pyrightconfig.json
+# ── Debug scratch files ───────────────────────────────────────────────────────
+test_fix.py
+test_regex*.py
+test_zwsp.py
+test_user_query.py

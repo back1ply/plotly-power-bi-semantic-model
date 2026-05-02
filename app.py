@@ -3,12 +3,10 @@
 import logging
 
 from dash import Dash
-from flask import abort
-from flask import jsonify
 
 from config import AppConfig
 from config import ThemeConfig
-from di import DiContainer
+from dependency_injection import DiContainer
 from domain import LoadResult
 from layout import create_layout
 from presentation.logging_bridge import setup_logging_bridge
@@ -64,6 +62,8 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
             "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
             "https://unpkg.com/@mantine/core@7/styles.css",
             "https://unpkg.com/@mantine/dates@7/styles.css",
+            "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css",
+            "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-quartz.css",
         ],
     )
 
@@ -90,42 +90,42 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
     # 5. Setup Logging Bridge & Shared Resources
 
     setup_logging_bridge(app)
-    app.server.config["PBI_CLIENT"] = container.pbi_client
-    app.server.config["PBI_EMBED"] = container.pbi_embed
-    app.server.config["DASHBOARD_REPOSITORY"] = container.repository
-    app.server.config["REPORT_ID"] = config.report_id
+
+    # Register in global registry for presentation layer (Eliminates Service Locator)
+    from domain import ClassifierPort  # noqa: PLC0415
+    from domain import DataAnalysisExpressionsSourcePort  # noqa: PLC0415
+    from domain import EmbedPort  # noqa: PLC0415
+    from domain import RepositoryPort  # noqa: PLC0415
+    from domain import TemplateLoaderPort  # noqa: PLC0415
+    from presentation.dependency import registry  # noqa: PLC0415
+
+    registry.register(ClassifierPort, container.classifier)
+    registry.register(RepositoryPort, container.repository)
+    registry.register(EmbedPort, container.power_bi_embed)
+    registry.register(TemplateLoaderPort, container.asset_loader)
+    registry.register(DataAnalysisExpressionsSourcePort, container.query_service)
+
+    # Named registration for backward compatibility (Legacy)
+    registry.register_named("COLUMN_CLASSIFIER", container.classifier)
+    registry.register_named("DASHBOARD_REPOSITORY", container.repository)
+    registry.register_named("ASSET_LOADER", container.asset_loader)
 
     # 6. Register Callbacks (CA-002)
     from presentation.callbacks import register_callbacks  # noqa: PLC0415
+    from presentation.routes import register_internal_routes  # noqa: PLC0415
 
-    register_callbacks(app, container.repository)
+    register_callbacks(
+        app,
+        data=container.cached_data,
+        data_analysis_expressions_query_source=container.query_service,
+        client=container.power_bi_client,
+        loader=container.asset_loader,
+    )
+    register_internal_routes(app, pbi_embed=container.power_bi_embed, report_id=config.report_id)
 
-    # 7. Define Health Check
-    logger.info("Setting up internal routes...")
-
-    @app.server.route("/api/health")
-    def health_check():
-        return jsonify({"status": "ok"})
-
-    # 7b. Embed Config Endpoint (app-owns-data, service principal)
-    @app.server.route("/api/embed-config")
-    def embed_config():
-        from domain import EmbedPort  # noqa: PLC0415
-
-        pbi: EmbedPort = app.server.config["PBI_EMBED"]
-        report_id: str = app.server.config.get("REPORT_ID", "")
-        if not report_id:
-            abort(503, description="REPORT_ID not configured")
-        try:
-            cfg = pbi.get_embed_config(report_id)
-            return jsonify(cfg)
-        except Exception as exc:
-            logger.error("embed_config failed: %s", exc)
-            abort(502, description=str(exc))
-
-    # 8. Set Layout
+    # 7. Set Layout
     app.layout = create_layout(
-        container.pbi_client.has_credentials,
+        container.power_bi_client.has_credentials,
         load_result.errors,
         theme=ThemeConfig(),
     )
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         logger.error("Non-fatal preloading failure: %s", exc)
 
     app = create_app(container=container, should_preload=False)
-    app.run(debug=config.debug, host="127.0.0.1", port=8050, dev_tools_ui=config.debug)
+    app.run(debug=config.debug, host="127.0.0.1", port=8050, dev_tools_ui=True)
 else:
     # Singleton instance for Gunicorn/Prod
     # side-effect-free import (preload_data defaults to False)
