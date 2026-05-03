@@ -8,6 +8,8 @@ from typing import TypeVar
 
 from dotenv import load_dotenv
 
+from domain.exceptions import ConfigurationError
+
 load_dotenv()
 
 T = TypeVar("T")
@@ -20,7 +22,13 @@ def _env_field[T](key: str, default: T, converter: Callable[[Any], T] | None = N
     else:
         _conv = converter
 
-    return field(default_factory=lambda: _conv(os.getenv(key, str(default))))
+    def _get_val():
+        val = os.getenv(key)
+        if val is None or (val == "" and default != ""):
+            return default
+        return _conv(val)
+
+    return field(default_factory=_get_val)
 
 
 @dataclass(frozen=True)
@@ -49,6 +57,22 @@ class AppConfig:
     api_base: str = _env_field("PBI_API_BASE", "https://api.powerbi.com/v1.0/myorg")
     preload_data: bool = _env_field("PRELOAD_DATA", False, lambda v: str(v).lower() == "true")
     debug: bool = _env_field("FLASK_DEBUG", False, lambda v: str(v).lower() in ("true", "1", "t"))
+
+    def validate(self) -> None:
+        """Validates that all required configuration is present."""
+        required = {
+            "TENANT_ID": self.tenant_id,
+            "CLIENT_ID": self.client_id,
+            "CLIENT_SECRET": self.client_secret,
+            "WORKSPACE_ID": self.workspace_id,
+            "DATASET_ID": self.dataset_id,
+        }
+        missing = [k for k, v in required.items() if not v]
+        if missing:
+            raise ConfigurationError(
+                f"Missing required environment variables: {', '.join(missing)}. "
+                "Please check your .env file or environment settings."
+            )
 
     @property
     def base_dir(self) -> Path:

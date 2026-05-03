@@ -29,3 +29,7 @@ class RateLimitError(Exception):
 
 class SchemaLoadError(Exception):
     """Exception raised when a schema fails to load."""
+
+
+class ConfigurationError(Exception):
+    """Exception raised when application configuration is invalid or missing."""

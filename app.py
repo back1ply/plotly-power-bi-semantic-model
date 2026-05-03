@@ -40,6 +40,9 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
     # 1. Configuration
     config = AppConfig()
 
+    # 1.1 Validation (Fail Fast)
+    config.validate()
+
     # 2. Initialize Dependency Container (Composition Root)
     if container is None:
         container = DiContainer(config)
