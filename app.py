@@ -140,6 +140,10 @@ def create_app(container: DiContainer | None = None, should_preload: bool | None
 if __name__ == "__main__":
     # Explicitly preload data in development
     config = AppConfig()
+
+    # Fail fast if credentials are missing before preloading
+    config.validate()
+
     container = DiContainer(config)
 
     # Preload cache at startup (non-blocking for server startup in local dev)
