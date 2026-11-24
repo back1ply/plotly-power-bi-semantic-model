@@ -9,15 +9,11 @@
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
-      "description": "Auto-merge non-major updates once CI passes (skip 0.x, where minor can break)",
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest"
+      "description": "No CI in this repo: never auto-merge",
+      "matchPackageNames": [
+        "*"
       ],
-      "matchCurrentVersion": "!/^v?0[.]/",
-      "automerge": true
+      "automerge": false
     }
   ],
   "osvVulnerabilityAlerts": true
