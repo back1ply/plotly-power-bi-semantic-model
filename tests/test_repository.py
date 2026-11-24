@@ -6,6 +6,7 @@ import polars.testing as pl_testing
 from unittest.mock import MagicMock
 from domain import QueryKey, ModelSchema, TableSchema, QueryError, QueryNotFoundError
 from infrastructure.repository import LiveRepository
+from infrastructure.adapters import PolarsDataFrameAdapter
 from infrastructure.decorators import CachingDataDecorator, CachingSchemaDecorator
 
 
@@ -13,14 +14,15 @@ class TestRepositoryDecorator:
     def test_get_data_cache_hit(self):
         """Decorator returns data from cache if available."""
         mock_cache = MagicMock()
-        expected_df = pl.DataFrame([{"val": 1}])
+        # The cache stores domain DataFrames (adapters), not raw Polars frames.
+        expected_df = PolarsDataFrameAdapter(pl.DataFrame([{"val": 1}]))
         mock_cache.get.return_value = expected_df
         mock_inner = MagicMock()
 
         repo = CachingDataDecorator(mock_inner, mock_cache)
         result = repo.get_data(QueryKey.KEY_PERFORMANCE_INDICATOR_TOTALS)
 
-        pl_testing.assert_frame_equal(result, expected_df)
+        assert result is expected_df
         mock_cache.get.assert_called_once()
         mock_inner.fetch_fresh_data.assert_not_called()
 
@@ -94,14 +96,15 @@ class TestRepositoryDecorator:
     def test_get_dynamic_data_cache_hit(self):
         """Decorator returns dynamic data from cache."""
         mock_cache = MagicMock()
-        expected_df = pl.DataFrame([{"dynamic": 1}])
+        # The cache stores domain DataFrames (adapters), not raw Polars frames.
+        expected_df = PolarsDataFrameAdapter(pl.DataFrame([{"dynamic": 1}]))
         mock_cache.get.return_value = expected_df
         mock_inner = MagicMock()
 
         repo = CachingDataDecorator(mock_inner, mock_cache)
         result = repo.get_dynamic_data("template", parameters={"val": 1})
 
-        pl_testing.assert_frame_equal(result, expected_df)
+        assert result is expected_df
         mock_inner.get_dynamic_data.assert_not_called()
 
     def test_get_summarized_data_cache_miss(self):

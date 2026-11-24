@@ -5,6 +5,7 @@ import polars as pl
 import pytest
 import dash_mantine_components as dmc
 from domain import QueryError
+from infrastructure.adapters import PolarsDataFrameAdapter
 
 # Patch dash.register_page before importing pages.home to avoid PageError
 with patch("dash.register_page"):
@@ -17,7 +18,8 @@ class TestHomeLayout:
         mock_repo = MagicMock()
         # Mocking all required data keys with expected columns and parsable dates
         # Column names must match what builders/components.py and figures.py expect (Revenue, not SalesAmount)
-        mock_data = pl.DataFrame({
+        # The repository returns domain DataFrames (adapters), not raw Polars frames.
+        mock_data = PolarsDataFrameAdapter(pl.DataFrame({
             "Revenue": [1000],
             "Profit": [500],
             "Orders": [10],
@@ -27,7 +29,7 @@ class TestHomeLayout:
             "Fiscal Year": [2024],
             "Month": ["2024-01-01"],
             "Group": ["Test"]
-        })
+        }))
         mock_repo.get_data.return_value = mock_data
 
         layout = serve_layout(mock_repo)
