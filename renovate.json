@@ -9,12 +9,28 @@
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
-      "description": "No CI in this repo: never auto-merge",
-      "matchPackageNames": [
-        "*"
+      "description": "Auto-merge non-major updates once CI passes (skip 0.x, where minor can break)",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
       ],
+      "matchCurrentVersion": "!/^v?0[.]/",
+      "automerge": true
+    },
+    {
+      "description": "Python version bumps: own PR, never auto-merged. A grouped 3.11 -> 3.15 bump broke builds before dependencies shipped wheels.",
+      "matchDepNames": [
+        "python"
+      ],
+      "groupName": "Python",
+      "groupSlug": "python",
       "automerge": false
     }
   ],
-  "osvVulnerabilityAlerts": true
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "automerge": true
+  }
 }
